@@ -1,0 +1,3 @@
+requests
+base58
+git+https://github.com/Moustikitos/fast-curve#egg=cSecp256k1
