@@ -22,15 +22,6 @@ TX_ATTRIBUTES = [
 ]
 
 
-def sign(
-    data: Union[str, bytes], prk: Union[cSecp256k1.Bcrpt410, str, int] = None
-):
-    prk = cSecp256k1.Bcrpt410(prk)
-    return prk.sign(
-        data.encode("utf-8") if isinstance(data, str) else data
-    ).raw()
-
-
 def unpack(fmt, fileobj):
     # read value as binary data from buffer
     return struct.unpack(fmt, fileobj.read(struct.calcsize(fmt)))
@@ -193,7 +184,7 @@ class Transaction:
                 pack_bytes(buf, binascii.unhexlify(self.signSignature))
             elif self.secondSignature:
                 pack_bytes(buf, binascii.unhexlify(self.secondSignature))
-        if not (skip_mask & SKIP_SIG1) and self.signatures:
+        if not (skip_mask & SKIP_MSIG) and self.signatures:
             pack_bytes(buf, binascii.unhexlify("".join(self.signatures)))
         return binascii.hexlify(buf.getvalue()).decode("utf-8")
 
@@ -270,7 +261,7 @@ class Transaction:
 
         if check is True:
             # TODO: remove previous indexed signature if any
-            signature = f"{puki.index(puk) + 1:02x}" + signature
+            signature = f"{puki.index(puk):02x}" + signature
             self.signatures = sorted(
                 set((self.signatures or []) + [signature]),
                 key=lambda s: s[:2]
