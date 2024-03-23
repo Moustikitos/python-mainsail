@@ -8,7 +8,7 @@ import cSecp256k1
 from io import BytesIO
 from typing import TextIO
 from mainsail.transaction import (
-    Transaction, pack, pack_bytes, unpack, unpack_bytes
+    Transaction, pack, pack_bytes, unpack, unpack_bytes, rest
 )
 from mainsail import cfg, identity, TYPE_GROUPS, TYPES
 
@@ -38,6 +38,7 @@ class Transfer(Transaction):
         self.typeGroup = TYPE_GROUPS.CORE.value
         self.type = TYPES.TRANSFER.value
         self.fee = "avg"
+
         self.amount = int(amount * 100000000)
         self.recipientId = recipientId
         if vendorField is not None:
@@ -64,13 +65,44 @@ class Vote(Transaction):
         self.typeGroup = TYPE_GROUPS.CORE.value
         self.type = TYPES.VOTE.value
         self.fee = "avg"
+
         self.asset = {"unvotes": [], "votes": []}
         if validator is not None:
-            self.asset["vote"].append(validator)
+            self.upVote(validator)
 
-    def checkVotes(self):
-        if hasattr(self, "_wallet"):
-            pass
+    def checkAsset(self):
+        prev_puk = getattr(self, "_wallet", {}).get("vote", None)
+        if prev_puk is not None and len(self.asset["votes"]):
+            self.asset["unvotes"] = [prev_puk]
+
+    def upVote(self, validator: str) -> None:
+        puk = rest.GET.api.wallets(validator).get("publicKey")
+        self.asset["votes"] = [puk]
+        self.checkAsset()
+
+    def downVote(self, validator: str) -> None:
+        puk = rest.GET.api.wallets(validator).get("publicKey")
+        self.asset["unvotes"] = [puk]
+
+    def serializeAsset(self):
+        buf = BytesIO()
+        pack("<B", buf, (len(self.asset["votes"]), ))
+        pack_bytes(buf, binascii.unhexlify("".join(self.asset["votes"])))
+        pack("<B", buf, (len(self.asset["unvotes"]), ))
+        pack_bytes(buf, binascii.unhexlify("".join(self.asset["unvotes"])))
+        return binascii.hexlify(buf.getvalue()).decode("utf-8")
+
+    def deserializeAsset(self, buf: TextIO):
+        n, = unpack("<B", buf)
+        self.asset["votes"] = [
+            binascii.hexlify(unpack_bytes(buf, 33)).decode("utf-8")
+            for i in range(n)
+        ]
+        n, = unpack("<B", buf)
+        self.asset["unvotes"] = [
+            binascii.hexlify(unpack_bytes(buf, 33)).decode("utf-8")
+            for i in range(n)
+        ]
 
 
 class MultiSignature(Transaction):
@@ -82,6 +114,7 @@ class MultiSignature(Transaction):
         self.typeGroup = TYPE_GROUPS.CORE.value
         self.type = TYPES.MULTI_SIGNATURE.value
         self.fee = "avg"
+
         self.asset = {
             "multiSignature": {"min": minimum, "publicKeys": list(puki)}
         }
@@ -133,6 +166,7 @@ class MultiPayment(Transaction):
         self.typeGroup = TYPE_GROUPS.CORE.value
         self.type = TYPES.MULTI_PAYMENT.value
         self.fee = "avg"
+
         self.asset = {"payments": []}
         if vendorField is not None:
             self.vendorField = vendorField
