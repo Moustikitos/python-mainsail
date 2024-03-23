@@ -55,23 +55,45 @@ class Transfer(Transaction):
         self.recipientId = recipientId.decode("utf-8")
 
 
-class MultiSignatureRegistration(Transaction):
+class Vote(Transaction):
+
+    def __init__(self, validator: str = None):
+        Transaction.__init__(self)
+        self.version = \
+            getattr(cfg, "consants", {}).get("block", {}).get("version", 1)
+        self.typeGroup = TYPE_GROUPS.CORE.value
+        self.type = TYPES.VOTE.value
+        self.fee = "avg"
+        self.asset = {"unvotes": [], "votes": []}
+        if validator is not None:
+            self.asset["vote"].append(validator)
+
+    def checkVotes(self):
+        if hasattr(self, "_wallet"):
+            pass
+
+
+class MultiSignature(Transaction):
 
     def __init__(self, *puki, minimum: int = 2) -> None:
         Transaction.__init__(self)
         self.version = \
             getattr(cfg, "consants", {}).get("block", {}).get("version", 1)
         self.typeGroup = TYPE_GROUPS.CORE.value
-        self.type = TYPES.MULTI_SIGNATURE_REGISTRATION.value
+        self.type = TYPES.MULTI_SIGNATURE.value
         self.fee = "avg"
-        self.asset = {"multiSignature": {"min": minimum, "publicKeys": puki}}
+        self.asset = {
+            "multiSignature": {"min": minimum, "publicKeys": list(puki)}
+        }
         self.setRecipient()
 
     def setRecipient(self):
-        self.recipientId = identity.combinePublicKey(
-            cSecp256k1.PublicKey.from_secret(
-                f"{self.asset['multiSignature']['min']:02x}"
-            ), *self.asset["multiSignature"]["publicKeys"]
+        self.recipientId = identity.getWallet(
+            identity.combinePublicKey(
+                cSecp256k1.PublicKey.from_secret(
+                    f"{self.asset['multiSignature']['min']:02x}"
+                ).encode(), *self.asset["multiSignature"]["publicKeys"]
+            )
         )
 
     def addParticipant(self, puk: str):
@@ -85,7 +107,7 @@ class MultiSignatureRegistration(Transaction):
     def serializeAsset(self) -> str:
         buf = BytesIO()
         pack(
-            "<HH", buf, (
+            "<BB", buf, (
                 self.asset["multiSignature"]["min"],
                 len(self.asset["multiSignature"]["publicKeys"]),
             )
@@ -95,7 +117,7 @@ class MultiSignatureRegistration(Transaction):
         return binascii.hexlify(buf.getvalue()).decode("utf-8")
 
     def deserializeAsset(self, buf: TextIO):
-        self.asset["multiSignature"]["min"], n = unpack("<HH", buf)
+        self.asset["multiSignature"]["min"], n = unpack("<BB", buf)
         self.asset["multiSignature"]["publicKeys"] = [
             binascii.hexlify(unpack_bytes(buf, 33)).decode("utf-8")
             for i in range(n)
