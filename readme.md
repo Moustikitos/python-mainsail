@@ -6,10 +6,10 @@ transaction and interact with the blockchain API.
 ## Available transactions
 
 * [x] Transfer
-* [ ] ValidatorRegistration
+* [x] ValidatorRegistration
 * [x] Vote
 * [x] MultiSignature
 * [x] MultiPayment
 * [ ] ValidatorResignation
-* [ ] UsernameRegistration
+* [x] UsernameRegistration
 * [ ] UsernameResignation
