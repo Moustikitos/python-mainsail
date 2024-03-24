@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
+import re
 import sys
 import base58
+import getpass
 import binascii
 import cSecp256k1
 
 from io import BytesIO
-from typing import TextIO
+from typing import TextIO, Union
 from mainsail.transaction import (
     Transaction, pack, pack_bytes, unpack, unpack_bytes, rest
 )
@@ -30,8 +32,15 @@ def deserialize(serial: str):
 class Transfer(Transaction):
 
     def __init__(
-        self, amount: float, recipientId: str, vendorField: str = None
+        self, amount: float, recipientId: str,
+        vendorField: Union[str, bytes] = None
     ) -> None:
+        try:
+            base58.b58decode_check(recipientId)
+        except ValueError:
+            raise identity.InvalidWalletAddress(
+                f"recipientId '{recipientId}' is not a valid wallet address"
+            )
         Transaction.__init__(self)
         self.version = \
             getattr(cfg, "consants", {}).get("block", {}).get("version", 1)
@@ -56,6 +65,34 @@ class Transfer(Transaction):
         self.recipientId = recipientId.decode("utf-8")
 
 
+class ValidatorRegistration(Transaction):
+
+    def __init__(self, validator: str = None):
+        Transaction.__init__(self)
+        self.version = \
+            getattr(cfg, "consants", {}).get("block", {}).get("version", 1)
+        self.typeGroup = TYPE_GROUPS.CORE.value
+        self.type = TYPES.VALIDATOR_REGISTRATION.value
+        self.fee = "avg"
+
+    def sign(self, mnemonic: str = None, nonce: int = None) -> None:
+        if mnemonic is None:
+            mnemonic = getpass.getpass(
+                "Type or paste your bip39 passphrase > "
+            )
+        puk = identity.validatorKeys(mnemonic).get("validatorPublicKey", None)
+        if puk:
+            self.asset = {"validatorPublicKey": puk}
+            Transaction.sign(self, mnemonic, nonce)
+        else:
+            raise Exception()
+
+    def serializeAsset(self):
+        buf = BytesIO()
+        pack_bytes(buf, binascii.unhexlify(self.asset["validatorPublicKey"]))
+        return binascii.hexlify(buf.getvalue()).decode("utf-8")
+
+
 class Vote(Transaction):
 
     def __init__(self, validator: str = None):
@@ -77,8 +114,9 @@ class Vote(Transaction):
 
     def upVote(self, validator: str) -> None:
         puk = rest.GET.api.wallets(validator).get("publicKey")
-        self.asset["votes"] = [puk]
-        self.checkAsset()
+        if puk not in self.asset["votes"]:
+            self.asset["votes"] = [puk]
+            self.checkAsset()
 
     def downVote(self, validator: str) -> None:
         puk = rest.GET.api.wallets(validator).get("publicKey")
@@ -196,3 +234,41 @@ class MultiPayment(Transaction):
             self.assets["payments"][i] = {
                 "recipientId": address.decode("utf-8"), "amount": amount
             }
+
+
+class ValidatorResignation(Transaction):
+    pass
+
+
+class UsernameRegistration(Transaction):
+
+    def __init__(self, username: str = None) -> None:
+        Transaction.__init__(self)
+        self.version = \
+            getattr(cfg, "consants", {}).get("block", {}).get("version", 1)
+        self.typeGroup = TYPE_GROUPS.CORE.value
+        self.type = TYPES.USERNAME_REGISTRATION.value
+        self.fee = "avg"
+
+        if username is not None:
+            self.setUsername(username)
+
+    def setUsername(self, username: str) -> None:
+        if re.match('^(?!_)(?!.*_$)(?!.*__)[a-z0-9_]+$', username) is None \
+                and len(username) > 20 or len(username) < 1:
+            raise identity.InvalidUsername("invalid username")
+        self.asset = {"username": username}
+
+    def serializeAsset(self):
+        buf = BytesIO()
+        pack("<B", buf, (len(self.asset["username"]), ))
+        pack_bytes(buf, self.asset["username"].encode("utf-8"))
+        return binascii.hexlify(buf.getvalue()).decode("utf-8")
+
+    def deserializeAsset(self, buf: TextIO):
+        n, = unpack("<B", buf)
+        self.asset = {"username": unpack_bytes(buf, n).decode("utf-8")}
+
+
+class UsernameResignation(Transaction):
+    pass
