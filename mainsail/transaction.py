@@ -45,6 +45,25 @@ def pack_bytes(f, v):
 class Transaction:
     """
     Generic transaction class.
+
+    Attributes:
+        amount (int):
+        asset (dict):
+        id (str):
+        network (int):
+        recipientId (str):
+        secondSignature (str):
+        signature (str):
+        signatures (list):
+        signSignature (str):
+        nonce (int):
+        type (int):
+        typeGroup (int):
+        vendorField (str|bytes):
+        version (int):
+        lockTransactionId (str):
+        lockSecret (str):
+        expiration (int):
     """
     APB_MODE: int = 0  # TODO: continue APB_MODE dev
 
@@ -104,13 +123,16 @@ class Transaction:
         return identity.getWallet(self.senderPublicKey)
 
     @senderId.setter
-    def senderId(self, addr) -> str:
+    def senderId(self, addr) -> None:
+        # get wallet attributes ans store it as `wallet` attribute
         resp = rest.GET.api.wallets(addr)
-        if resp.get("error", False):
+        if not resp.get("error", False):
+            self._wallet = resp
+            # update transaction senderPublicKey and nonce
+            self._senderPublicKey = resp["publicKey"]
+            self.nonce = int(resp["nonce"]) + 1
+        else:
             raise rest.ApiError(resp)
-        self._wallet = resp
-        self._senderPublicKey = resp["publicKey"]
-        self.nonce = int(resp["nonce"]) + 1
 
     @property
     def senderPublicKey(self) -> str:
@@ -118,14 +140,17 @@ class Transaction:
 
     @senderPublicKey.setter
     def senderPublicKey(self, puk) -> None:
+        # get wallet attributes ans store it as `wallet` attribute
         resp = rest.GET.api.wallets(puk)
-        if resp.get("error", False):
-            raise rest.ApiError(resp)
-        self._wallet = resp
+        if not resp.get("error", False):
+            self._wallet = resp
+            self.nonce = int(resp["nonce"]) + 1
+        else:
+            self.nonce = 1
         self._senderPublicKey = puk
-        self.nonce = int(resp["nonce"]) + 1
 
     def export(self) -> dict:
+        """Return a mapping representation of the transaction."""
         result = {}
         for attr in TX_ATTRIBUTES:
             value = getattr(self, attr, None)
@@ -134,6 +159,17 @@ class Transaction:
         return result
 
     def serialize(self, skip_mask: int = 0b000) -> str:
+        """
+        Serialize the transaction.
+
+        Arguments:
+            skip_mask (int): binary mask to skip signatures during the
+                serialization. Available masks are `SKIP_SIG1`, `SIG_SIG2` and
+                `SIG_MSIG`.
+
+        Returns:
+            str: the serialized transaction as hex string.
+        """
         return self.serializeCommon() + self.serializeAsset() + \
             self.serializeSignatures(skip_mask)
 
@@ -170,10 +206,10 @@ class Transaction:
         return data
 
     def serializeAsset(self) -> str:
-        return ""
+        raise NotImplementedError("Not available on absract class")
 
     def deserializeAsset(self, buf: TextIO) -> str:
-        return ""
+        raise NotImplementedError("Not available on absract class")
 
     def serializeSignatures(self, skip_mask: int) -> str:
         buf = BytesIO()
@@ -189,7 +225,7 @@ class Transaction:
         return binascii.hexlify(buf.getvalue()).decode("utf-8")
 
     def deserializeSignatures(self, buf: TextIO):
-        pass
+        pass  # TODO:
 
     def sign(
         self, prk: Union[cSecp256k1.Bcrpt410, str, int] = None,
@@ -271,8 +307,8 @@ class Transaction:
 
     def identify(self) -> None:
         if hasattr(self, "signature") or hasattr(self, "signatures"):
-            # TODO: check seconSignature
-            # TODO: check signatures min
+            # TODO: check seconSignature ?
+            # TODO: check signatures min ?
             serial = binascii.unhexlify(self.serialize())
             self.id = cSecp256k1.hash_sha256(serial).decode("utf-8")
 
