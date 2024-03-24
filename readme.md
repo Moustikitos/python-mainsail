@@ -1,6 +1,6 @@
 # python-mainsail
 
-THis package aims to provide a simple implemetation to bake offline `Ark`
+This package aims to provide a simple implemetation to bake offline `Ark`
 transaction and interact with the blockchain API.
 
 ## Available transactions
