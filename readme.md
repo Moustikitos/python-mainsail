@@ -10,6 +10,6 @@ transaction and interact with the blockchain API.
 * [x] Vote
 * [x] MultiSignature
 * [x] MultiPayment
-* [ ] ValidatorResignation
+* [x] ValidatorResignation
 * [x] UsernameRegistration
-* [ ] UsernameResignation
+* [x] UsernameResignation

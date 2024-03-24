@@ -237,7 +237,20 @@ class MultiPayment(Transaction):
 
 
 class ValidatorResignation(Transaction):
-    pass
+
+    def __init__(self) -> None:
+        Transaction.__init__(self)
+        self.version = \
+            getattr(cfg, "consants", {}).get("block", {}).get("version", 1)
+        self.typeGroup = TYPE_GROUPS.CORE.value
+        self.type = TYPES.VALIDATOR_RESIGNATION.value
+        self.fee = "avg"
+
+    def serializeAsset(self):
+        return ""
+
+    def deserializeAsset(self, buf: TextIO):
+        pass
 
 
 class UsernameRegistration(Transaction):
@@ -271,4 +284,17 @@ class UsernameRegistration(Transaction):
 
 
 class UsernameResignation(Transaction):
-    pass
+
+    def __init__(self) -> None:
+        Transaction.__init__(self)
+        self.version = \
+            getattr(cfg, "consants", {}).get("block", {}).get("version", 1)
+        self.typeGroup = TYPE_GROUPS.CORE.value
+        self.type = TYPES.USERNAME_RESIGNATION.value
+        self.fee = "avg"
+
+    def serializeAsset(self):
+        return ""
+
+    def deserializeAsset(self, buf: TextIO):
+        pass
