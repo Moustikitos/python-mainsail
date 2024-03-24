@@ -108,7 +108,9 @@ class Vote(Transaction):
             self.upVote(validator)
 
     def checkAsset(self):
-        prev_puk = getattr(self, "_wallet", {}).get("vote", None)
+        prev_puk = getattr(
+            self, "_wallet", {}
+        ).get("attributes", {}).get("vote", None)
         if prev_puk is not None and len(self.asset["votes"]):
             self.asset["unvotes"] = [prev_puk]
 
