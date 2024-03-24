@@ -4,7 +4,7 @@ import random
 import requests
 
 from mainsail import cfg
-
+from urllib.parse import urlencode
 
 class ApiError(Exception):
     pass
@@ -32,19 +32,25 @@ class EndPoint(object):
             return object.__getattribute__(self, attr)
 
     def __call__(self, *path, **data):
-        peer = False
-        while peer is False:
-            peer = data.pop("peer", random.choice(cfg.peers))
+        peer, n = data.pop("peer", False), 10
+        while peer is False and n >= 0:
+            peer = random.choice(cfg.peers)
             if self.port not in peer["ports"]:
                 peer = False
+            n -= 1
+        if peer is False:
+            raise ApiError(
+                f"no peer available with '{self.port}' port available"
+            )
         return self.func(
             f"http://{peer['ip']}:{peer['ports'][self.port]}/{self.path}/"
-            f"{'/'.join(path)}",
+            f"{'/'.join(path)}" + (f"?{urlencode(data)}" if len(data) else ""),
             headers=self.headers,
             json=data
         ).json()
 
 
+# TODO: improve
 def use_network(peer: str) -> None:
     cfg._clear()
 
