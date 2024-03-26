@@ -40,7 +40,7 @@ class EndPoint(object):
             n -= 1
         if peer is False:
             raise ApiError(
-                f"no peer available with '{self.port}' port available"
+                f"no peer available with '{self.port}' port enabled"
             )
         return self.func(
             f"http://{peer['ip']}:{peer['ports'][self.port]}/{self.path}/"
@@ -95,3 +95,4 @@ GET = EndPoint(port="api-development")
 WHK = EndPoint(port="api-webhook")
 POST = EndPoint(port="api-transaction-pool", func=requests.post)
 WHKP = EndPoint(port="api-webhook", func=requests.post)
+WHKD = EndPoint(port="api-webhook", func=requests.delete)
