@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import struct
 import binascii
 import cSecp256k1
 
 from io import BytesIO
 from typing import Union, TextIO
-from mainsail import identity, rest, cfg
+from mainsail import serializer, deserializer, identity, rest, cfg
+from mainsail import pack, pack_bytes, unpack, unpack_bytes
 
 # bit masks for serialization options
 SKIP_SIG1 = 0b100  # skip signature
@@ -20,26 +20,6 @@ TX_ATTRIBUTES = [
     "signSignature", "nonce", "type", "typeGroup", "vendorField",
     "version", "lockTransactionId", "lockSecret", "expiration"
 ]
-
-
-def unpack(fmt, fileobj):
-    # read value as binary data from buffer
-    return struct.unpack(fmt, fileobj.read(struct.calcsize(fmt)))
-
-
-def pack(fmt, fileobj, values):
-    # write value as binary data into buffer
-    return fileobj.write(struct.pack(fmt, *values))
-
-
-def unpack_bytes(f, n):
-    # read bytes from buffer
-    return unpack("<%ss" % n, f)[0]
-
-
-def pack_bytes(f, v):
-    # write bytes into buffer
-    return pack("<%ss" % len(v), f, (v,))
 
 
 class Transaction:
@@ -206,10 +186,12 @@ class Transaction:
         return data
 
     def serializeAsset(self) -> str:
-        raise NotImplementedError("Not available on absract class")
+        return getattr(serializer, f"_{self.typeGroup}_{self.type}")(self)
 
-    def deserializeAsset(self, buf: TextIO) -> str:
-        raise NotImplementedError("Not available on absract class")
+    def deserializeAsset(self, buf: TextIO):
+        return getattr(
+            deserializer, f"_{self.typeGroup}_{self.type}"
+        )(self,)
 
     def serializeSignatures(self, skip_mask: int) -> str:
         buf = BytesIO()

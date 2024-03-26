@@ -8,11 +8,15 @@ import binascii
 import cSecp256k1
 
 from io import BytesIO
-from typing import TextIO, Union
-from mainsail.transaction import (
-    Transaction, pack, pack_bytes, unpack, unpack_bytes, rest
-)
-from mainsail import cfg, identity, TYPE_GROUPS, TYPES
+from typing import Union
+from mainsail.transaction import Transaction
+from mainsail import cfg, rest, identity, TYPE_GROUPS, TYPES
+
+__all__ = [
+    "Transfer", "ValidatorRegistration", "ValidatorResignation",
+    "UsernameRegistration", "UsernameResignation", "Vote", "MultiPayment",
+    "MultiSignature"
+]
 
 
 def deserialize(serial: str):
@@ -53,17 +57,6 @@ class Transfer(Transaction):
         if vendorField is not None:
             self.vendorField = vendorField
 
-    def serializeAsset(self) -> str:
-        buf = BytesIO()
-        pack("<QI", buf, (self.amount, self.expiration))
-        pack_bytes(buf, base58.b58decode_check(self.recipientId))
-        return binascii.hexlify(buf.getvalue()).decode("utf-8")
-
-    def deserializeAsset(self, buf: TextIO):
-        self.amount, self.expiration = unpack("<QI", buf)
-        recipientId = base58.b58encode_check(unpack_bytes(buf, 21))
-        self.recipientId = recipientId.decode("utf-8")
-
 
 class ValidatorRegistration(Transaction):
 
@@ -86,11 +79,6 @@ class ValidatorRegistration(Transaction):
             Transaction.sign(self, mnemonic, nonce)
         else:
             raise Exception()
-
-    def serializeAsset(self):
-        buf = BytesIO()
-        pack_bytes(buf, binascii.unhexlify(self.asset["validatorPublicKey"]))
-        return binascii.hexlify(buf.getvalue()).decode("utf-8")
 
 
 class Vote(Transaction):
@@ -123,26 +111,6 @@ class Vote(Transaction):
     def downVote(self, validator: str) -> None:
         puk = rest.GET.api.wallets(validator).get("publicKey")
         self.asset["unvotes"] = [puk]
-
-    def serializeAsset(self):
-        buf = BytesIO()
-        pack("<B", buf, (len(self.asset["votes"]), ))
-        pack_bytes(buf, binascii.unhexlify("".join(self.asset["votes"])))
-        pack("<B", buf, (len(self.asset["unvotes"]), ))
-        pack_bytes(buf, binascii.unhexlify("".join(self.asset["unvotes"])))
-        return binascii.hexlify(buf.getvalue()).decode("utf-8")
-
-    def deserializeAsset(self, buf: TextIO):
-        n, = unpack("<B", buf)
-        self.asset["votes"] = [
-            binascii.hexlify(unpack_bytes(buf, 33)).decode("utf-8")
-            for i in range(n)
-        ]
-        n, = unpack("<B", buf)
-        self.asset["unvotes"] = [
-            binascii.hexlify(unpack_bytes(buf, 33)).decode("utf-8")
-            for i in range(n)
-        ]
 
 
 class MultiSignature(Transaction):
@@ -177,25 +145,6 @@ class MultiSignature(Transaction):
         self.asset["multiSignature"]["min"] = minimum
         self.setRecipient()
 
-    def serializeAsset(self) -> str:
-        buf = BytesIO()
-        pack(
-            "<BB", buf, (
-                self.asset["multiSignature"]["min"],
-                len(self.asset["multiSignature"]["publicKeys"]),
-            )
-        )
-        for puk in self.asset["multiSignature"]["publicKeys"]:
-            pack_bytes(buf, binascii.unhexlify(puk))
-        return binascii.hexlify(buf.getvalue()).decode("utf-8")
-
-    def deserializeAsset(self, buf: TextIO):
-        self.asset["multiSignature"]["min"], n = unpack("<BB", buf)
-        self.asset["multiSignature"]["publicKeys"] = [
-            binascii.hexlify(unpack_bytes(buf, 33)).decode("utf-8")
-            for i in range(n)
-        ]
-
 
 class MultiPayment(Transaction):
 
@@ -220,23 +169,6 @@ class MultiPayment(Transaction):
         )
         self.amount += amount
 
-    def serializeAsset(self) -> str:
-        buf = BytesIO()
-        pack("<H", buf, (len(self.asset["payments"]), ))
-        for item in self.asset["payments"]:
-            pack("<Q", buf, (item["amount"], ))
-            pack_bytes(buf, base58.b58decode_check(item["recipientId"]))
-        return binascii.hexlify(buf.getvalue()).decode("utf-8")
-
-    def deserializeAsset(self, buf: TextIO):
-        n, = unpack("<H", buf)
-        for i in range(n):
-            amount, = unpack("<Q", buf)
-            address, = base58.b58encode_check(unpack_bytes(buf, 21))
-            self.assets["payments"][i] = {
-                "recipientId": address.decode("utf-8"), "amount": amount
-            }
-
 
 class ValidatorResignation(Transaction):
 
@@ -247,12 +179,6 @@ class ValidatorResignation(Transaction):
         self.typeGroup = TYPE_GROUPS.CORE.value
         self.type = TYPES.VALIDATOR_RESIGNATION.value
         self.fee = "avg"
-
-    def serializeAsset(self):
-        return ""
-
-    def deserializeAsset(self, buf: TextIO):
-        pass
 
 
 class UsernameRegistration(Transaction):
@@ -274,16 +200,6 @@ class UsernameRegistration(Transaction):
             raise identity.InvalidUsername("invalid username")
         self.asset = {"username": username}
 
-    def serializeAsset(self):
-        buf = BytesIO()
-        pack("<B", buf, (len(self.asset["username"]), ))
-        pack_bytes(buf, self.asset["username"].encode("utf-8"))
-        return binascii.hexlify(buf.getvalue()).decode("utf-8")
-
-    def deserializeAsset(self, buf: TextIO):
-        n, = unpack("<B", buf)
-        self.asset = {"username": unpack_bytes(buf, n).decode("utf-8")}
-
 
 class UsernameResignation(Transaction):
 
@@ -294,9 +210,3 @@ class UsernameResignation(Transaction):
         self.typeGroup = TYPE_GROUPS.CORE.value
         self.type = TYPES.USERNAME_RESIGNATION.value
         self.fee = "avg"
-
-    def serializeAsset(self):
-        return ""
-
-    def deserializeAsset(self, buf: TextIO):
-        pass
