@@ -19,7 +19,7 @@ OPERATORS = {
 }
 
 
-def condition(expr):
+def condition(expr: str) -> dict:
     """
     Webhook condition builder from `str` expression.
 
@@ -65,7 +65,7 @@ between', 'key': 'amount'}
     return condition
 
 
-def dump(token):
+def dump(token: str) -> str:
     # "0c8e74e1cbfe36404386d33a5bbd8b66fe944e318edb02b979d6bf0c87978b64"
     authorization = token[:32]  # "fe944e318edb02b979d6bf0c87978b64"
     verification = token[32:]   # "0c8e74e1cbfe36404386d33a5bbd8b66"
@@ -85,7 +85,7 @@ def dump(token):
     return filename
 
 
-def create(peer, event, target, *conditions):
+def subscribe(peer: str, event: str, target: str, *conditions) -> None:
     conditions = [
         (
             condition(cond) if isinstance(cond, str) else
@@ -113,7 +113,7 @@ def create(peer, event, target, *conditions):
         raise Exception("webhook not created")
 
 
-def verify(authorization):
+def verify(authorization: str) -> bool:
     filename = os.path.join(
         ROOT, ".webhooks", rest.cfg.nethash,
         hashlib.md5(authorization.encode("utf-8")).hexdigest()
@@ -129,7 +129,7 @@ def verify(authorization):
             hashlib.sha256(token.encode("utf-8")).hexdigest() == data["hash"]
 
 
-def list():
+def list() -> list:
     return [
         name for name in next(
             os.walk(os.path.join(ROOT, ".webhooks", rest.cfg.nethash))
@@ -137,11 +137,11 @@ def list():
     ]
 
 
-def open(whk_id):
+def open(whk_id: str) -> dict:
     return loadJson(os.path.join(ROOT, ".webhooks", rest.cfg.nethash, whk_id))
 
 
-def delete(whk_id):
+def unsubscribe(whk_id: str) -> dict:
     whk_path = os.path.join(
         ROOT, ".webhooks", rest.cfg.nethash, whk_id + ".json"
     )
