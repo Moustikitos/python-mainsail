@@ -6,6 +6,7 @@ import requests
 from mainsail import cfg
 from urllib.parse import urlencode
 
+
 class ApiError(Exception):
     pass
 

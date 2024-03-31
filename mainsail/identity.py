@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import os
 import blspy
+import pyaes
 import base58
 import hashlib
 import binascii
@@ -8,7 +10,11 @@ import cSecp256k1
 import unicodedata
 
 from mainsail import cfg
-from typing import Union
+from typing import Union, List
+
+
+class InvalidDecryption(Exception):
+    pass
 
 
 class InvalidWalletAddress(Exception):
@@ -17,6 +23,78 @@ class InvalidWalletAddress(Exception):
 
 class InvalidUsername(Exception):
     pass
+
+
+class KeyRing(cSecp256k1.KeyRing):
+
+    def dump(self, pin: Union[bytes, List[int]]):
+        code = binascii.hexlify(bytes(pin)).decode("utf-8")
+        name = binascii.hexlify(bip39_hash(code)).decode("utf-8")
+        filename = os.path.join(
+            os.path.dirname(__file__), ".keyrings", f"{name[:16]}.krg"
+        )
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        with open(filename, "wb") as output:
+            output.write(encrypt(f"{self:064x}", code))
+
+
+class Bcrpt410(KeyRing, cSecp256k1.Bcrpt410):
+
+    @staticmethod
+    def load(pin: Union[bytes, List[int]]):
+        code = binascii.hexlify(bytes(pin)).decode("utf-8")
+        name = binascii.hexlify(bip39_hash(code)).decode("utf-8")
+        filename = os.path.join(
+            os.path.dirname(__file__), ".keyrings", f"{name[:16]}.krg"
+        )
+        if os.path.exists(filename):
+            with open(filename, "rb") as input:
+                data = binascii.unhexlify(decrypt(input.read(), code))
+                return Bcrpt410(int.from_bytes(data, "big"))
+        else:
+            raise InvalidDecryption("no keyring paired with given pin code")
+
+
+class Schnorr(KeyRing, cSecp256k1.Schnorr):
+
+    @staticmethod
+    def load(pin: Union[bytes, List[int]]):
+        code = binascii.hexlify(bytes(pin)).decode("utf-8")
+        name = binascii.hexlify(bip39_hash(code)).decode("utf-8")
+        filename = os.path.join(
+            os.path.dirname(__file__), ".keyrings", f"{name[:16]}.krg"
+        )
+        if os.path.exists(filename):
+            with open(filename, "rb") as input:
+                data = binascii.unhexlify(decrypt(input.read(), code))
+                return Schnorr(int.from_bytes(data, "big"))
+        else:
+            raise InvalidDecryption("no keyring paired with given pin code")
+
+
+def bip39_hash(secret: str, password: str = ""):
+    # bip39 hash method without salt passphrase
+    # validated on https://iancoleman.io/bip39/
+    return hashlib.pbkdf2_hmac(
+        "sha512", unicodedata.normalize("NFKD", secret).encode("utf-8"),
+        unicodedata.normalize("NFKD", f"mnemonic{password}").encode("utf-8"),
+        iterations=2048, dklen=64
+    )
+
+
+def encrypt(data: str, pin: str) -> bytes:
+    h = hashlib.sha256(pin.encode("utf-8")).digest()
+    aes = pyaes.AESModeOfOperationCTR(h)
+    return aes.encrypt(data.encode("utf-8"))
+
+
+def decrypt(data: bytes, pin: str) -> str:
+    h = hashlib.sha256(pin.encode("utf-8")).digest()
+    aes = pyaes.AESModeOfOperationCTR(h)
+    try:
+        return aes.decrypt(data).decode("utf-8")
+    except UnicodeDecodeError:
+        return False
 
 
 def combinePublicKey(*puki):
@@ -82,13 +160,7 @@ def getKeys(secret):
 
 def validatorKeys(secret: str):
     try:
-        # bip39 hash method without salt passphrase
-        # validated on https://iancoleman.io/bip39/
-        seed = hashlib.pbkdf2_hmac(
-            "sha512", unicodedata.normalize("NFKD", secret).encode("utf-8"),
-            unicodedata.normalize("NFKD", "mnemonic").encode("utf-8"),
-            iterations=2048, dklen=64
-        )
+        seed = bip39_hash(secret)
     except Exception:
         return {}
     else:
