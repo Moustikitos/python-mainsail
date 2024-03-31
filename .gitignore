@@ -54,9 +54,11 @@ coverage.xml
 docs/_build/
 
 # misceleanous
+.keyrings/
 .vscode/
 .venv/
 .venv2/
-site/
 .generated-files.txt
+site/
 mkdocs.yml
+uwlt/
