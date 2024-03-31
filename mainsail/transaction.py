@@ -213,36 +213,30 @@ class Transaction:
         pass  # TODO:
 
     def sign(
-        self, prk: Union[cSecp256k1.Bcrpt410, str, int] = None,
+        self, prk: Union[identity.KeyRing, str, int] = None,
         nonce: int = None
     ) -> None:
-        if not isinstance(prk, cSecp256k1.Bcrpt410):
-            prk = cSecp256k1.Bcrpt410(prk)
+        if not isinstance(prk, identity.KeyRing):
+            prk = identity.KeyRing.create(prk)
         self.senderPublicKey = prk.puk().encode()
         if nonce:
             self.nonce = nonce
-        sig = prk.sign(
-            binascii.unhexlify(
-                self.serialize(SKIP_SIG1 | SKIP_SIG2)
-            )
+        self.signature = prk.sign(
+            binascii.unhexlify(self.serialize(SKIP_SIG1 | SKIP_SIG2))
         ).raw()
-        self.signature = sig
 
     def signSign(
-        self, prk2: Union[cSecp256k1.Bcrpt410, str, int] = None
+        self, prk2: Union[identity.KeyRing, str, int] = None
     ) -> None:
-        if not isinstance(prk2, cSecp256k1.Bcrpt410):
-            prk2 = cSecp256k1.Bcrpt410(prk2)
-        sig = prk2.sign(
-            binascii.unhexlify(self.serialize(SKIP_SIG2))
-        ).raw()
-        self.secondSignature = sig
+        self.secondSignature = identity.sign(
+            binascii.unhexlify(self.serialize(SKIP_SIG2)), prk2
+        )
 
     def multiSign(
-        self, prki: Union[cSecp256k1.Bcrpt410, str, int] = None
+        self, prki: Union[identity.KeyRing, str, int] = None
     ) -> bool:
-        if not isinstance(prki, cSecp256k1.Bcrpt410):
-            prki = cSecp256k1.Bcrpt410(prki)
+        if not isinstance(prki, identity.KeyRing):
+            prki = identity.KeyRing.create(prki)
         sig = prki.sign(
             binascii.unhexlify(
                 self.serialize(SKIP_SIG1 | SKIP_SIG2 | SKIP_MSIG)

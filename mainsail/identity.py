@@ -27,7 +27,7 @@ class InvalidUsername(Exception):
 
 class KeyRing(cSecp256k1.KeyRing):
 
-    def dump(self, pin: Union[bytes, List[int]]):
+    def dump(self, pin: Union[bytes, List[int]]) -> None:
         code = binascii.hexlify(bytes(pin)).decode("utf-8")
         name = binascii.hexlify(bip39_hash(code)).decode("utf-8")
         filename = os.path.join(
@@ -36,6 +36,12 @@ class KeyRing(cSecp256k1.KeyRing):
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         with open(filename, "wb") as output:
             output.write(encrypt(f"{self:064x}", code))
+
+    @staticmethod
+    def create(obj: int = None):
+        return (
+            Schnorr if getattr(cfg, "bip340", False) else Bcrpt410
+        )(obj)
 
 
 class Bcrpt410(KeyRing, cSecp256k1.Bcrpt410):
@@ -72,12 +78,12 @@ class Schnorr(KeyRing, cSecp256k1.Schnorr):
             raise InvalidDecryption("no keyring paired with given pin code")
 
 
-def bip39_hash(secret: str, password: str = ""):
-    # bip39 hash method without salt passphrase
+def bip39_hash(secret: str, passphrase: str = "") -> bytes:
+    # bip39 hash method
     # validated on https://iancoleman.io/bip39/
     return hashlib.pbkdf2_hmac(
         "sha512", unicodedata.normalize("NFKD", secret).encode("utf-8"),
-        unicodedata.normalize("NFKD", f"mnemonic{password}").encode("utf-8"),
+        unicodedata.normalize("NFKD", f"mnemonic{passphrase}").encode("utf-8"),
         iterations=2048, dklen=64
     )
 
@@ -97,7 +103,7 @@ def decrypt(data: bytes, pin: str) -> str:
         return False
 
 
-def combinePublicKey(*puki):
+def combinePublicKey(*puki) -> str:
     P = cSecp256k1.PublicKey.decode(puki[0])
     for puk in puki[1:]:
         P += cSecp256k1.PublicKey.decode(puk)
@@ -112,27 +118,29 @@ def getWallet(puk: str, version: int = None) -> str:
 
 
 def sign(
-    data: Union[str, bytes], prk: Union[cSecp256k1.Bcrpt410, str, int] = None
+    data: Union[str, bytes], prk: Union[KeyRing, str, int] = None,
+    format: str = "raw"
 ) -> str:
     """
     Compute raw Schnorr signature from data using private key according to
-    bcrypto 4.10 spec.
+    bcrypto 4.10 spec or BIP340 specification.
 
     Args:
         data (str|bytes): data used for signature computation.
-        prk (str|int|cSecp256k1.Bcrpt410): private key or keyring.
+        prk (str|int|KeyRing): private key or keyring.
 
     Returns:
         str: Schnorr raw signature (ie r | s)
     """
-    if not isinstance(prk, cSecp256k1.Bcrpt410):
-        prk = cSecp256k1.Bcrpt410(prk)
-    return prk.sign(
-        data.encode("utf-8") if isinstance(data, str) else data
-    ).raw()
+    if not isinstance(prk, KeyRing):
+        prk = KeyRing.create(prk)
+    return getattr(
+        prk.sign(data.encode("utf-8") if isinstance(data, str) else data),
+        format
+    )()
 
 
-def getKeys(secret):
+def userKeys(secret: Union[int, bytes, str]) -> dict:
     """
     Generate keyring containing secp256k1 keys-pair and wallet import format
     (WIF).
@@ -158,22 +166,17 @@ def getKeys(secret):
     }
 
 
-def validatorKeys(secret: str):
-    try:
-        seed = bip39_hash(secret)
-    except Exception:
-        return {}
-    else:
-        privateKey = blspy.AugSchemeMPL.derive_child_sk(
-            blspy.AugSchemeMPL.key_gen(seed), 0
-        )
-        return {
-            "validatorPrivateKey": bytes(privateKey).hex(),
-            "validatorPublicKey": bytes(privateKey.get_g1()).hex()
-        }
+def validatorKeys(secret: str) -> dict:
+    privateKey = blspy.AugSchemeMPL.derive_child_sk(
+        blspy.AugSchemeMPL.key_gen(bip39_hash(secret)), 0
+    )
+    return {
+        "validatorPrivateKey": bytes(privateKey).hex(),
+        "validatorPublicKey": bytes(privateKey.get_g1()).hex()
+    }
 
 
-def getWIF(seed):
+def getWIF(seed: bytes) -> str:
     """
     Compute WIF address from seed.
 
