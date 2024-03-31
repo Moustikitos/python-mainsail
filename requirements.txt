@@ -1,4 +1,5 @@
 requests
 base58
+pyaes
 blspy
 git+https://github.com/Moustikitos/fast-curve#egg=cSecp256k1
