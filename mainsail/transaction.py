@@ -30,6 +30,7 @@ class Transaction:
         amount (int):
         asset (dict):
         id (str):
+        blockId (str):
         network (int):
         recipientId (str):
         secondSignature (str):
@@ -50,6 +51,7 @@ class Transaction:
     amount: int = 0
     asset: dict = None
     id: str = None
+    blockId: str = None
     network: int = None
     recipientId: str = None
     secondSignature: str = None
@@ -100,6 +102,7 @@ class Transaction:
 
     @property
     def senderId(self) -> str:
+        # no senderId attributes in Transaction
         return identity.getWallet(self.senderPublicKey)
 
     @senderId.setter
