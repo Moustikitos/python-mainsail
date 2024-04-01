@@ -5,6 +5,7 @@ import os
 import json
 import struct
 
+from typing import TextIO, Union
 from enum import IntEnum
 
 
@@ -30,8 +31,8 @@ class EXPIRATION_TYPES(IntEnum):
     BLOCK_HEIGHT = 2
 
 
-def loadJson(path):
-    """Load JSON data from path"""
+def loadJson(path: str) -> Union[dict, list]:
+    "Load JSON data from path"
     if os.path.exists(path):
         with io.open(path, "r", encoding="utf-8") as in_:
             data = json.load(in_)
@@ -45,8 +46,8 @@ def loadJson(path):
     return data
 
 
-def dumpJson(data, path):
-    """Dump JSON data to path"""
+def dumpJson(data: Union[dict, list], path: str) -> None:
+    "Dump JSON data to path"
     try:
         os.makedirs(os.path.dirname(path))
     except Exception:
@@ -60,21 +61,21 @@ def dumpJson(data, path):
         pass
 
 
-def unpack(fmt, fileobj):
-    # read value as binary data from buffer
+def unpack(fmt: str, fileobj: TextIO) -> tuple:
+    "Read value as binary data from buffer"
     return struct.unpack(fmt, fileobj.read(struct.calcsize(fmt)))
 
 
-def pack(fmt, fileobj, values):
-    # write value as binary data into buffer
+def pack(fmt: str, fileobj: TextIO, values: tuple):
+    "Write values as binary data into buffer"
     return fileobj.write(struct.pack(fmt, *values))
 
 
-def unpack_bytes(f, n):
-    # read bytes from buffer
+def unpack_bytes(f: TextIO, n: int) -> bytes:
+    "Read n bytes from buffer"
     return unpack("<%ss" % n, f)[0]
 
 
-def pack_bytes(f, v):
-    # write bytes into buffer
+def pack_bytes(f: TextIO, v: bytes) -> int:
+    "Write bytes into buffer"
     return pack("<%ss" % len(v), f, (v,))
