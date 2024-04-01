@@ -36,7 +36,8 @@ class EndPoint(object):
         peer, n = data.pop("peer", False), 10
         while peer is False and n >= 0:
             peer = random.choice(config.peers)
-            if self.port not in peer["ports"]:
+            ports = list(set(self.port) & set(peer["ports"].keys()))
+            if not len(ports):
                 peer = False
             n -= 1
         if peer is False:
@@ -44,7 +45,7 @@ class EndPoint(object):
                 f"no peer available with '{self.port}' port enabled"
             )
         return self.func(
-            f"http://{peer['ip']}:{peer['ports'][self.port]}/{self.path}/"
+            f"http://{peer['ip']}:{peer['ports'][ports[0]]}/{self.path}/"
             f"{'/'.join(path)}" + (f"?{urlencode(data)}" if len(data) else ""),
             headers=self.headers,
             json=data
@@ -92,8 +93,11 @@ def get_peers(peer: str, latency: int = 200) -> None:
     ])
 
 
-GET = EndPoint(port="api-development")
-WHK = EndPoint(port="api-webhook")
-POST = EndPoint(port="api-transaction-pool", func=requests.post)
-WHKP = EndPoint(port="api-webhook", func=requests.post)
-WHKD = EndPoint(port="api-webhook", func=requests.delete)
+# api root endpoints
+GET = EndPoint(port=["api-development", "api-http"])
+# transaction pool root endpoint
+POST = EndPoint(port=["api-transaction-pool"], func=requests.post)
+# webhook root endpoints
+WHK = EndPoint(port=["api-webhook"])
+WHKP = EndPoint(port=["api-webhook"], func=requests.post)
+WHKD = EndPoint(port=["api-webhook"], func=requests.delete)
