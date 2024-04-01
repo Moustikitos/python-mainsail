@@ -5,7 +5,7 @@ import cSecp256k1
 
 from io import BytesIO
 from typing import Union, TextIO
-from mainsail import serializer, deserializer, identity, rest, cfg
+from mainsail import config, serializer, deserializer, identity, rest
 from mainsail import pack, pack_bytes, unpack, unpack_bytes
 
 # bit masks for serialization options
@@ -94,7 +94,7 @@ class Transaction:
             name = f"{name[0].lower()}{name[1:]}"
             if value in "minavgmax":
                 self._fee = int(
-                    getattr(cfg, "fees", {}).get(f"{self.version}", {})
+                    getattr(config, "fees", {}).get(f"{self.version}", {})
                     .get(name, {}).get(value, '10000000')
                 )
         elif isinstance(value, int):
@@ -159,11 +159,11 @@ class Transaction:
     def serializeCommon(self) -> str:
         buf = BytesIO()
 
-        pack("<BBB", buf, (0xff, self.version, cfg.version))
+        pack("<BBB", buf, (0xff, self.version, config.version))
         pack("<IHQ", buf, (self.typeGroup, self.type, self.nonce))
         pack_bytes(buf, binascii.unhexlify(self.senderPublicKey))
 
-        vf_len = getattr(cfg, "constants", {}).get("vendorFieldLength", 255)
+        vf_len = getattr(config, "constants", {}).get("vendorFieldLength", 255)
         vendorField = (self.vendorField or "")[:vf_len]
         if isinstance(vendorField, str):
             vendorField = vendorField.encode("utf-8")

@@ -3,7 +3,7 @@
 import random
 import requests
 
-from mainsail import cfg
+from mainsail import config
 from urllib.parse import urlencode
 
 
@@ -35,7 +35,7 @@ class EndPoint(object):
     def __call__(self, *path, **data):
         peer, n = data.pop("peer", False), 10
         while peer is False and n >= 0:
-            peer = random.choice(cfg.peers)
+            peer = random.choice(config.peers)
             if self.port not in peer["ports"]:
                 peer = False
             n -= 1
@@ -53,24 +53,24 @@ class EndPoint(object):
 
 # TODO: improve
 def use_network(peer: str) -> None:
-    cfg._clear()
+    config._clear()
 
     for key, value in requests.get(
         f"{peer}/api/node/configuration",
         headers={'Content-type': 'application/json'},
     ).json().get("data", {}).items():
-        cfg._track.append(key)
-        setattr(cfg, key, value)
+        config._track.append(key)
+        setattr(config, key, value)
 
     get_peers(peer)
-    cfg._track.append("peers")
+    config._track.append("peers")
 
     fees = requests.get(
         f"{peer}/api/node/fees?days=30",
         headers={'Content-type': 'application/json'},
     ).json().get("data", {})
-    setattr(cfg, "fees", fees)
-    cfg._track.append("fees")
+    setattr(config, "fees", fees)
+    config._track.append("fees")
 
 
 def get_peers(peer: str, latency: int = 200) -> None:
@@ -80,7 +80,7 @@ def get_peers(peer: str, latency: int = 200) -> None:
         ).json().get("data", {}),
         key=lambda p: p["latency"]
     )
-    setattr(cfg, "peers", [
+    setattr(config, "peers", [
         {
             "ip": peer["ip"],
             "ports": dict(

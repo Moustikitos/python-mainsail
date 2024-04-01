@@ -9,7 +9,7 @@ import binascii
 import cSecp256k1
 import unicodedata
 
-from mainsail import cfg
+from mainsail import config
 from typing import Union, List
 
 
@@ -40,8 +40,14 @@ class KeyRing(cSecp256k1.KeyRing):
     @staticmethod
     def create(obj: int = None):
         return (
-            Schnorr if getattr(cfg, "bip340", False) else Bcrpt410
+            Schnorr if getattr(config, "bip340", False) else Bcrpt410
         )(obj)
+
+    @staticmethod
+    def load(pin: Union[bytes, List[int]]):
+        return (
+            Schnorr if getattr(config, "bip340", False) else Bcrpt410
+        ).load(pin)
 
 
 class Bcrpt410(KeyRing, cSecp256k1.Bcrpt410):
@@ -112,7 +118,7 @@ def combinePublicKey(*puki) -> str:
 
 def getWallet(puk: str, version: int = None) -> str:
     ripemd160 = hashlib.new('ripemd160', binascii.unhexlify(puk)).digest()[:20]
-    seed = binascii.unhexlify(f"{version or cfg.version:02x}") + ripemd160
+    seed = binascii.unhexlify(f"{version or config.version:02x}") + ripemd160
     b58 = base58.b58encode_check(seed)
     return b58.decode('utf-8') if isinstance(b58, bytes) else b58
 
@@ -186,7 +192,7 @@ def getWIF(seed: bytes) -> str:
     Returns:
         base58: the WIF address.
     """
-    if hasattr(cfg, "wif"):
-        seed = binascii.unhexlify(f"{cfg.wif:02x}") + seed[:32] + b"\x01"
+    if hasattr(config, "wif"):
+        seed = binascii.unhexlify(f"{config.wif:02x}") + seed[:32] + b"\x01"
         b58 = base58.b58encode_check(seed)               # \x01 -> compressed
         return b58.decode('utf-8') if isinstance(b58, bytes) else b58

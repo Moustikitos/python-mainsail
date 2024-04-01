@@ -70,7 +70,7 @@ def dump(token: str) -> str:
     authorization = token[:32]  # "fe944e318edb02b979d6bf0c87978b64"
     verification = token[32:]   # "0c8e74e1cbfe36404386d33a5bbd8b66"
     filename = os.path.join(
-        ROOT, ".webhooks", rest.cfg.nethash,
+        ROOT, ".webhooks", rest.config.nethash,
         hashlib.md5(authorization.encode("utf-8")).hexdigest()
     )
     os.makedirs(os.path.dirname(filename), exist_ok=True)
@@ -106,7 +106,7 @@ def subscribe(peer: str, event: str, target: str, *conditions) -> None:
         data["peer"] = peer
         dumpJson(
             data, os.path.join(
-                ROOT, ".webhooks", rest.cfg.nethash, data["id"] + ".json"
+                ROOT, ".webhooks", rest.config.nethash, data["id"] + ".json"
             )
         )
     else:
@@ -115,7 +115,7 @@ def subscribe(peer: str, event: str, target: str, *conditions) -> None:
 
 def verify(authorization: str) -> bool:
     filename = os.path.join(
-        ROOT, ".webhooks", rest.cfg.nethash,
+        ROOT, ".webhooks", rest.config.nethash,
         hashlib.md5(authorization.encode("utf-8")).hexdigest()
     )
     try:
@@ -132,18 +132,20 @@ def verify(authorization: str) -> bool:
 def list() -> list:
     return [
         name for name in next(
-            os.walk(os.path.join(ROOT, ".webhooks", rest.cfg.nethash))
+            os.walk(os.path.join(ROOT, ".webhooks", rest.config.nethash))
         )[-1] if name.endswith(".json")
     ]
 
 
 def open(whk_id: str) -> dict:
-    return loadJson(os.path.join(ROOT, ".webhooks", rest.cfg.nethash, whk_id))
+    return loadJson(
+        os.path.join(ROOT, ".webhooks", rest.config.nethash, whk_id)
+    )
 
 
 def unsubscribe(whk_id: str) -> dict:
     whk_path = os.path.join(
-        ROOT, ".webhooks", rest.cfg.nethash, whk_id + ".json"
+        ROOT, ".webhooks", rest.config.nethash, whk_id + ".json"
     )
     if os.path.exists(whk_path):
         data = loadJson(whk_path)

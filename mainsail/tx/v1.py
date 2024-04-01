@@ -10,7 +10,7 @@ import cSecp256k1
 from io import BytesIO
 from typing import Union
 from mainsail.transaction import Transaction
-from mainsail import cfg, rest, identity, TYPE_GROUPS, TYPES
+from mainsail import config, rest, identity, TYPE_GROUPS, TYPES
 
 __all__ = [
     "Transfer", "ValidatorRegistration", "ValidatorResignation",
@@ -47,7 +47,7 @@ class Transfer(Transaction):
             )
         Transaction.__init__(self)
         self.version = \
-            getattr(cfg, "consants", {}).get("block", {}).get("version", 1)
+            getattr(config, "consants", {}).get("block", {}).get("version", 1)
         self.typeGroup = TYPE_GROUPS.CORE.value
         self.type = TYPES.TRANSFER.value
         self.fee = "avg"
@@ -63,7 +63,7 @@ class ValidatorRegistration(Transaction):
     def __init__(self, validator: str = None):
         Transaction.__init__(self)
         self.version = \
-            getattr(cfg, "consants", {}).get("block", {}).get("version", 1)
+            getattr(config, "consants", {}).get("block", {}).get("version", 1)
         self.typeGroup = TYPE_GROUPS.CORE.value
         self.type = TYPES.VALIDATOR_REGISTRATION.value
         self.fee = "avg"
@@ -86,7 +86,7 @@ class Vote(Transaction):
     def __init__(self, validator: str = None):
         Transaction.__init__(self)
         self.version = \
-            getattr(cfg, "consants", {}).get("block", {}).get("version", 1)
+            getattr(config, "consants", {}).get("block", {}).get("version", 1)
         self.typeGroup = TYPE_GROUPS.CORE.value
         self.type = TYPES.VOTE.value
         self.fee = "avg"
@@ -118,7 +118,7 @@ class MultiSignature(Transaction):
     def __init__(self, *puki, minimum: int = 2) -> None:
         Transaction.__init__(self)
         self.version = \
-            getattr(cfg, "consants", {}).get("block", {}).get("version", 1)
+            getattr(config, "consants", {}).get("block", {}).get("version", 1)
         self.typeGroup = TYPE_GROUPS.CORE.value
         self.type = TYPES.MULTI_SIGNATURE.value
         self.fee = "avg"
@@ -151,7 +151,7 @@ class MultiPayment(Transaction):
     def __init__(self, vendorField: str = None, **payments) -> None:
         Transaction.__init__(self)
         self.version = \
-            getattr(cfg, "consants", {}).get("block", {}).get("version", 1)
+            getattr(config, "consants", {}).get("block", {}).get("version", 1)
         self.typeGroup = TYPE_GROUPS.CORE.value
         self.type = TYPES.MULTI_PAYMENT.value
         self.fee = "avg"
@@ -175,7 +175,7 @@ class ValidatorResignation(Transaction):
     def __init__(self) -> None:
         Transaction.__init__(self)
         self.version = \
-            getattr(cfg, "consants", {}).get("block", {}).get("version", 1)
+            getattr(config, "consants", {}).get("block", {}).get("version", 1)
         self.typeGroup = TYPE_GROUPS.CORE.value
         self.type = TYPES.VALIDATOR_RESIGNATION.value
         self.fee = "avg"
@@ -186,7 +186,7 @@ class UsernameRegistration(Transaction):
     def __init__(self, username: str = None) -> None:
         Transaction.__init__(self)
         self.version = \
-            getattr(cfg, "consants", {}).get("block", {}).get("version", 1)
+            getattr(config, "consants", {}).get("block", {}).get("version", 1)
         self.typeGroup = TYPE_GROUPS.CORE.value
         self.type = TYPES.USERNAME_REGISTRATION.value
         self.fee = "avg"
@@ -206,7 +206,7 @@ class UsernameResignation(Transaction):
     def __init__(self) -> None:
         Transaction.__init__(self)
         self.version = \
-            getattr(cfg, "consants", {}).get("block", {}).get("version", 1)
+            getattr(config, "consants", {}).get("block", {}).get("version", 1)
         self.typeGroup = TYPE_GROUPS.CORE.value
         self.type = TYPES.USERNAME_RESIGNATION.value
         self.fee = "avg"
