@@ -55,6 +55,7 @@ docs/_build/
 
 # misceleanous
 .keyrings/
+.webhooks/
 .vscode/
 .venv/
 .venv2/
