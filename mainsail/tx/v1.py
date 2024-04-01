@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
+"""
+This module provides v1 transaction builders.
+"""
 
 import re
-import sys
 import base58
 import getpass
-import binascii
 import cSecp256k1
 
-from io import BytesIO
 from typing import Union
 from mainsail.transaction import Transaction
 from mainsail import config, rest, identity, TYPE_GROUPS, TYPES
@@ -17,20 +17,6 @@ __all__ = [
     "UsernameRegistration", "UsernameResignation", "Vote", "MultiPayment",
     "MultiSignature"
 ]
-
-
-def deserialize(serial: str):
-    buf = BytesIO(binascii.unhexlify(serial))
-    data = Transaction.deserializeCommon(buf)
-    # transform TYPES enum name to class name
-    name = "".join(e.capitalize() for e in TYPES(data["type"]).name.split("_"))
-    # get transaction builder class
-    tx = getattr(sys.modules[__name__], name)()
-    for key, value in data.items():
-        setattr(tx, key, value)
-    tx.deserializeAsset(buf)
-    tx.deserializeSignatures(buf)
-    return tx
 
 
 class Transfer(Transaction):
