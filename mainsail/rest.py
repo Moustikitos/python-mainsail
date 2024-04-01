@@ -56,12 +56,16 @@ class EndPoint(object):
             )
         # else do HTTP request call
         ports = list(set(self.port) & set(peer["ports"].keys()))
-        return self.func(
+        resp = self.func(
             f"http://{peer['ip']}:{peer['ports'][ports[0]]}/{self.path}/"
             f"{'/'.join(path)}" + (f"?{urlencode(data)}" if len(data) else ""),
             headers=self.headers,
             json=data
-        ).json()
+        )
+        try:
+            return resp.json()
+        except requests.exceptions.JSONDecodeError:
+            return resp
 
 
 # TODO: improve

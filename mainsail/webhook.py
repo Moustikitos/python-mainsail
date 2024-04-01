@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import io
 import os
 import re
 import pickle
@@ -67,14 +68,14 @@ between', 'key': 'amount'}
 
 def dump(token: str) -> str:
     # "0c8e74e1cbfe36404386d33a5bbd8b66fe944e318edb02b979d6bf0c87978b64"
-    authorization = token[:32]  # "fe944e318edb02b979d6bf0c87978b64"
-    verification = token[32:]   # "0c8e74e1cbfe36404386d33a5bbd8b66"
+    authorization = token[:32]  # "0c8e74e1cbfe36404386d33a5bbd8b66"
+    verification = token[32:]   # "fe944e318edb02b979d6bf0c87978b64"
     filename = os.path.join(
         ROOT, ".webhooks", rest.config.nethash,
         hashlib.md5(authorization.encode("utf-8")).hexdigest()
     )
     os.makedirs(os.path.dirname(filename), exist_ok=True)
-    with open(filename, "wb") as out:
+    with io.open(filename, "wb") as out:
         pickle.dump(
             {
                 "verification": verification,
@@ -85,7 +86,7 @@ def dump(token: str) -> str:
     return filename
 
 
-def subscribe(peer: str, event: str, target: str, *conditions) -> None:
+def subscribe(peer: dict, event: str, target: str, *conditions) -> None:
     conditions = [
         (
             condition(cond) if isinstance(cond, str) else
@@ -119,7 +120,7 @@ def verify(authorization: str) -> bool:
         hashlib.md5(authorization.encode("utf-8")).hexdigest()
     )
     try:
-        with open(filename, "rb") as in_:
+        with io.open(filename, "rb") as in_:
             data = pickle.load(in_)
     except Exception:
         return False
@@ -139,7 +140,9 @@ def list() -> list:
 
 def open(whk_id: str) -> dict:
     return loadJson(
-        os.path.join(ROOT, ".webhooks", rest.config.nethash, whk_id)
+        os.path.join(
+            ROOT, ".webhooks", rest.config.nethash, whk_id + ".json"
+        )
     )
 
 
@@ -152,14 +155,12 @@ def unsubscribe(whk_id: str) -> dict:
         resp = rest.WHKD.api.webhooks(
             "%s" % whk_id, peer=data.get("peer", None)
         )
-        if resp.get("status", None) == 204:
+        if resp.status_code == 204:
             try:
                 os.remove(data["dump"])
             except Exception:
                 pass
             os.remove(whk_path)
-        resp.pop('except', False)
-        resp.pop('error', False)
         return resp
     else:
         raise Exception("cannot find webhook data")
