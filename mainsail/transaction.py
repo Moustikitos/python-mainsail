@@ -245,11 +245,11 @@ class Transaction:
         return self.appendMultiSig(sig, prki.puk().encode())
 
     def appendMultiSig(self, signature: str, puk: str = None) -> bool:
-        hS = cSecp256k1.HexSig.from_raw(signature)
-        msg = cSecp256k1.hash_sha256(
-            binascii.unhexlify(
-                self.serialize(SKIP_SIG1 | SKIP_SIG2 | SKIP_MSIG)
-            )
+        krg_cls = \
+            identity.Schnorr if getattr(identity.config, "bip340", False) \
+            else identity.Bcrpt410
+        msg = binascii.unhexlify(
+            self.serialize(SKIP_SIG1 | SKIP_SIG2 | SKIP_MSIG)
         )
         check = False
 
@@ -260,19 +260,11 @@ class Transaction:
 
         if puk is None:
             for puk in puki:
-                _puk = cSecp256k1.PublicKey.decode(puk)
-                if cSecp256k1._schnorr.bcrypto410_verify(
-                    msg, _puk.x, _puk.y, hS.r, hS.s
-                ):
+                if krg_cls.verify(puk, msg, signature):
                     check = True
                     break
         elif puk in puki:
-            _puk = cSecp256k1.PublicKey.decode(puk)
-            check = bool(
-                cSecp256k1._schnorr.bcrypto410_verify(
-                    msg, _puk.x, _puk.y, hS.r, hS.s
-                )
-            )
+            check = krg_cls.verify(puk, msg, signature)
 
         if check is True:
             # TODO: remove previous indexed signature if any
