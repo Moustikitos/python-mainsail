@@ -28,13 +28,11 @@ class InvalidUsername(Exception):
 class KeyRing(cSecp256k1.KeyRing):
 
     def dump(self, pin: Union[bytes, List[int]]) -> None:
-        code = binascii.hexlify(bytes(pin)).decode("utf-8")
-        name = binascii.hexlify(bip39_hash(code)).decode("utf-8")
-        filename = os.path.join(
-            os.path.dirname(__file__), ".keyrings", f"{name[:16]}.krg"
-        )
+        code = binascii.hexlify(bytes(pin))
+        filename = encryptionFilename(code.decode("utf-8"))
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         with open(filename, "wb") as output:
+            code = hashlib.sha256(code).hexdigest()
             output.write(encrypt(f"{self:064x}", code))
 
     @staticmethod
@@ -54,13 +52,11 @@ class Bcrpt410(KeyRing, cSecp256k1.Bcrpt410):
 
     @staticmethod
     def load(pin: Union[bytes, List[int]]):
-        code = binascii.hexlify(bytes(pin)).decode("utf-8")
-        name = binascii.hexlify(bip39_hash(code)).decode("utf-8")
-        filename = os.path.join(
-            os.path.dirname(__file__), ".keyrings", f"{name[:16]}.krg"
-        )
+        code = binascii.hexlify(bytes(pin))
+        filename = encryptionFilename(code.decode("utf-8"))
         if os.path.exists(filename):
             with open(filename, "rb") as input:
+                code = hashlib.sha256(code).hexdigest()
                 data = binascii.unhexlify(decrypt(input.read(), code))
                 return Bcrpt410(int.from_bytes(data, "big"))
         else:
@@ -71,26 +67,31 @@ class Schnorr(KeyRing, cSecp256k1.Schnorr):
 
     @staticmethod
     def load(pin: Union[bytes, List[int]]):
-        code = binascii.hexlify(bytes(pin)).decode("utf-8")
-        name = binascii.hexlify(bip39_hash(code)).decode("utf-8")
-        filename = os.path.join(
-            os.path.dirname(__file__), ".keyrings", f"{name[:16]}.krg"
-        )
+        code = binascii.hexlify(bytes(pin))
+        filename = encryptionFilename(code.decode("utf-8"))
         if os.path.exists(filename):
             with open(filename, "rb") as input:
+                code = hashlib.sha256(code).hexdigest()
                 data = binascii.unhexlify(decrypt(input.read(), code))
                 return Schnorr(int.from_bytes(data, "big"))
         else:
             raise InvalidDecryption("no keyring paired with given pin code")
 
 
-def bip39_hash(secret: str, passphrase: str = "") -> bytes:
+def bip39Hash(secret: str, passphrase: str = "") -> bytes:
     # bip39 hash method
     # validated on https://iancoleman.io/bip39/
     return hashlib.pbkdf2_hmac(
         "sha512", unicodedata.normalize("NFKD", secret).encode("utf-8"),
         unicodedata.normalize("NFKD", f"mnemonic{passphrase}").encode("utf-8"),
         iterations=2048, dklen=64
+    )
+
+
+def encryptionFilename(code: str) -> str:
+    name = binascii.hexlify(bip39Hash(code)).decode("utf-8")
+    return os.path.join(
+        os.path.dirname(__file__), ".keyrings", f"{name[:32]}.krg"
     )
 
 
@@ -134,9 +135,10 @@ def sign(
     Args:
         data (str|bytes): data used for signature computation.
         prk (str|int|KeyRing): private key or keyring.
+        format (str): `raw` or `der` to determine signature format output.
 
     Returns:
-        str: Schnorr raw signature (ie r | s)
+        str: Schnorr signature in raw format (ie r | s) by default.
     """
     if not isinstance(prk, KeyRing):
         prk = KeyRing.create(prk)
@@ -174,7 +176,7 @@ def userKeys(secret: Union[int, bytes, str]) -> dict:
 
 def validatorKeys(secret: str) -> dict:
     privateKey = blspy.AugSchemeMPL.derive_child_sk(
-        blspy.AugSchemeMPL.key_gen(bip39_hash(secret)), 0
+        blspy.AugSchemeMPL.key_gen(bip39Hash(secret)), 0
     )
     return {
         "validatorPrivateKey": bytes(privateKey).hex(),
