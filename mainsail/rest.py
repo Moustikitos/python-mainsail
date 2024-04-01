@@ -1,8 +1,14 @@
 # -*- coding: utf-8 -*-
+"""
+Network endpoint managment module.
+
+
+"""
 
 import random
 import requests
 
+from typing import Union
 from mainsail import config
 from urllib.parse import urlencode
 
@@ -13,13 +19,13 @@ class ApiError(Exception):
 
 class EndPoint(object):
 
-    def __init__(self, *path, **opt):
+    def __init__(self, *path, **opt) -> None:
         self.headers = opt.pop("headers", {'Content-type': 'application/json'})
         self.port = opt.pop("port", "api-development")
         self.func = opt.pop("func", requests.get)
         self.path = "/".join(path)
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str) -> object:
         if attr not in object.__getattribute__(self, "__dict__"):
             if self.path == "":
                 return EndPoint(
@@ -32,18 +38,24 @@ class EndPoint(object):
         else:
             return object.__getattribute__(self, attr)
 
-    def __call__(self, *path, **data):
+    def __call__(self, *path, **data) -> Union[list, dict]:
         peer, n = data.pop("peer", False), 10
+        # n tries to fetch a valid peer
         while peer is False and n >= 0:
+            # get a random peer from available network peers
             peer = random.choice(config.peers)
-            ports = list(set(self.port) & set(peer["ports"].keys()))
-            if not len(ports):
-                peer = False
+            # match attended ports and enabled ports
+            peer = \
+                False if not len(set(self.port) & set(peer["ports"].keys())) \
+                else peer
             n -= 1
+        # if n unsuccessful tries
         if peer is False:
             raise ApiError(
                 f"no peer available with '{self.port}' port enabled"
             )
+        # else do HTTP request call
+        ports = list(set(self.port) & set(peer["ports"].keys()))
         return self.func(
             f"http://{peer['ip']}:{peer['ports'][ports[0]]}/{self.path}/"
             f"{'/'.join(path)}" + (f"?{urlencode(data)}" if len(data) else ""),
