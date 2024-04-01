@@ -14,25 +14,7 @@ renderer:
   pages:
     - title: Home
       name: index
-      source: README.md
-    # - title: EPSGlide
-    #   contents:
-    #     - epsglide.ProjectedCoordRefSystem*
-    #     - epsglide.distance
-    #     - epsglide.destination
-    #     - epsglide.to_crs
-    #     - epsglide.to_wgs84
-    # - title: Geodesy
-    #   contents:
-    #     - epsglide.geodesy*
-    # - title: Dataset
-    #   contents:
-    #     - epsglide.dataset.*
-    #     - epsglide.dataset.Ellipsoid*
-    #     - epsglide.dataset.GeodeticCoordRefSystem*
-    # - title: C code
-    #   contents:
-    #     - epsglide.src*
+      source: readme.md
 
   mkdocs_config:
     site_name: ArkEcosystem python mainsail project
