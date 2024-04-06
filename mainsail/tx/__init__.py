@@ -41,7 +41,7 @@ def deserialize(serial: str):
         tx = getattr(sys.modules[__name__], name)()
     except AttributeError:
         raise AttributeError(
-            f"transaction type {TYPES(data["type"]).value} builder "
+            f"transaction type {TYPES(data['type']).value} builder "
             "is not defined"
         )
     for key, value in data.items():
