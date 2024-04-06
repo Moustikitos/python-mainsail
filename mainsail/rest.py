@@ -21,7 +21,7 @@ class EndPoint(object):
 
     def __init__(self, *path, **opt) -> None:
         self.headers = opt.pop("headers", {'Content-type': 'application/json'})
-        self.port = opt.pop("port", "api-development")
+        self.ports = opt.pop("ports", "api-development")
         self.func = opt.pop("func", requests.get)
         self.path = "/".join(path)
 
@@ -29,16 +29,18 @@ class EndPoint(object):
         if attr not in object.__getattribute__(self, "__dict__"):
             if self.path == "":
                 return EndPoint(
-                    attr, headers=self.headers, func=self.func, port=self.port)
+                    attr, headers=self.headers, func=self.func,
+                    ports=self.ports
+                )
             else:
                 return EndPoint(
                     self.path, attr, headers=self.headers, func=self.func,
-                    port=self.port
+                    ports=self.ports
                 )
         else:
             return object.__getattribute__(self, attr)
 
-    def __call__(self, *path, **data) -> Union[list, dict]:
+    def __call__(self, *path, **data) -> Union[list, dict, requests.Response]:
         peer, n = data.pop("peer", False), 10
         # n tries to fetch a valid peer
         while peer is False and n >= 0:
@@ -46,16 +48,16 @@ class EndPoint(object):
             peer = random.choice(config.peers)
             # match attended ports and enabled ports
             peer = \
-                False if not len(set(self.port) & set(peer["ports"].keys())) \
+                False if not len(set(self.ports) & set(peer["ports"].keys())) \
                 else peer
             n -= 1
         # if n unsuccessful tries
         if peer is False:
             raise ApiError(
-                f"no peer available with '{self.port}' port enabled"
+                f"no peer available with '{self.ports}' port enabled"
             )
         # else do HTTP request call
-        ports = list(set(self.port) & set(peer["ports"].keys()))
+        ports = list(set(self.ports) & set(peer["ports"].keys()))
         resp = self.func(
             f"http://{peer['ip']}:{peer['ports'][ports[0]]}/{self.path}/"
             f"{'/'.join(path)}" + (f"?{urlencode(data)}" if len(data) else ""),
@@ -68,7 +70,6 @@ class EndPoint(object):
             return resp
 
 
-# TODO: improve
 def use_network(peer: str) -> None:
     config._clear()
 
@@ -76,11 +77,8 @@ def use_network(peer: str) -> None:
         f"{peer}/api/node/configuration",
         headers={'Content-type': 'application/json'},
     ).json().get("data", {}).items():
-        config._track.append(key)
         setattr(config, key, value)
-
-    get_peers(peer)
-    config._track.append("peers")
+        config._track.append(key)
 
     fees = requests.get(
         f"{peer}/api/node/fees?days=30",
@@ -88,6 +86,16 @@ def use_network(peer: str) -> None:
     ).json().get("data", {})
     setattr(config, "fees", fees)
     config._track.append("fees")
+
+    get_peers(peer)
+
+    nethash = getattr(config, "nethash", False)
+    if nethash:
+        config._dump(nethash)
+
+
+def load_network(name: str):
+    config._load(name)
 
 
 def get_peers(peer: str, latency: int = 200) -> None:
@@ -107,13 +115,15 @@ def get_peers(peer: str, latency: int = 200) -> None:
         }
         for peer in resp if peer["latency"] <= latency
     ])
+    if "peers" not in config._track:
+        config._track.append("peers")
 
 
 # api root endpoints
-GET = EndPoint(port=["api-development", "api-http"])
+GET = EndPoint(ports=["api-development", "api-http"])
 # transaction pool root endpoint
-POST = EndPoint(port=["api-transaction-pool"], func=requests.post)
+POST = EndPoint(ports=["api-transaction-pool"], func=requests.post)
 # webhook root endpoints
-WHK = EndPoint(port=["api-webhook"])
-WHKP = EndPoint(port=["api-webhook"], func=requests.post)
-WHKD = EndPoint(port=["api-webhook"], func=requests.delete)
+WHK = EndPoint(ports=["api-webhook"])
+WHKP = EndPoint(ports=["api-webhook"], func=requests.post)
+WHKD = EndPoint(ports=["api-webhook"], func=requests.delete)
