@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import binascii
-import cSecp256k1
 
 from io import BytesIO
 from typing import Union, TextIO
@@ -229,19 +228,17 @@ class Transaction:
         self, prk2: Union[identity.KeyRing, str, int] = None
     ) -> None:
         self.secondSignature = identity.sign(
-            binascii.unhexlify(self.serialize(SKIP_SIG2)), prk2
+            binascii.unhexlify(self.serialize(SKIP_SIG2)), prk2, "raw"
         )
 
     def multiSign(
         self, prki: Union[identity.KeyRing, str, int] = None
     ) -> bool:
-        if not isinstance(prki, identity.KeyRing):
-            prki = identity.KeyRing.create(prki)
-        sig = prki.sign(
+        sig = identity.sign(
             binascii.unhexlify(
                 self.serialize(SKIP_SIG1 | SKIP_SIG2 | SKIP_MSIG)
-            )
-        ).raw()
+            ), prki, "raw"
+        )
         return self.appendMultiSig(sig, prki.puk().encode())
 
     def appendMultiSig(self, signature: str, puk: str = None) -> bool:
@@ -275,13 +272,6 @@ class Transaction:
             )
 
         return check
-
-    def identify(self) -> None:
-        if hasattr(self, "signature") or hasattr(self, "signatures"):
-            # TODO: check seconSignature ?
-            # TODO: check signatures min ?
-            serial = binascii.unhexlify(self.serialize())
-            self.id = cSecp256k1.hash_sha256(serial).decode("utf-8")
 
     def send(self) -> dict:
         return rest.POST.api(
