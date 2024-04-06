@@ -46,7 +46,7 @@ class Transfer(Transaction):
 
 class ValidatorRegistration(Transaction):
 
-    def __init__(self, validator: str = None):
+    def __init__(self):
         Transaction.__init__(self)
         self.version = \
             getattr(config, "consants", {}).get("block", {}).get("version", 1)
@@ -59,7 +59,7 @@ class ValidatorRegistration(Transaction):
             mnemonic = getpass.getpass(
                 "Type or paste your bip39 passphrase > "
             )
-        puk = identity.validatorKeys(mnemonic).get("validatorPublicKey", None)
+        puk = identity.validator_keys(mnemonic).get("validatorPublicKey", None)
         if puk:
             self.asset = {"validatorPublicKey": puk}
             Transaction.sign(self, mnemonic, nonce)
@@ -115,8 +115,8 @@ class MultiSignature(Transaction):
         self.setRecipient()
 
     def setRecipient(self):
-        self.recipientId = identity.getWallet(
-            identity.combinePublicKey(
+        self.recipientId = identity.get_wallet(
+            identity.combine_puk(
                 cSecp256k1.PublicKey.from_secret(
                     f"{self.asset['multiSignature']['min']:02x}"
                 ).encode(), *self.asset["multiSignature"]["publicKeys"]
