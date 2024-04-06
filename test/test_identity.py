@@ -40,14 +40,14 @@ class DefinitionTest(TestCase):
         )
         for mnemonic, hash in vectors:
             self.assertEqual(
-                identity.bip39Hash(mnemonic, passphrase="TREZOR").hex(),
+                identity.bip39_hash(mnemonic, passphrase="TREZOR").hex(),
                 hash
             )
 
     def test_wallet_from_puk(self):
         setattr(identity.config, "version", 30)
         self.assertEqual(
-            identity.getWallet(
+            identity.get_wallet(
                 "02968e862011738ac185e87f47dec61b32c842fd8e24fab625c02a15ad7e2"
                 "d0f65"
             ), "D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv"

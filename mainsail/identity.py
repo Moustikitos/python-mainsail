@@ -1,5 +1,13 @@
 # -*- coding: utf-8 -*-
 
+"""
+This modules provides cryptographic primitives to interact with blockchain.
+
+```python
+>>> from mainsail import identity
+```
+"""
+
 import os
 import blspy
 import pyaes
@@ -11,6 +19,8 @@ import unicodedata
 
 from mainsail import config
 from typing import Union, List
+
+DATA = os.path.join(os.getenv("HOME"), ".mainsail", ".keyrings")
 
 
 class InvalidDecryption(Exception):
@@ -26,61 +36,109 @@ class InvalidUsername(Exception):
 
 
 class KeyRing(cSecp256k1.KeyRing):
+    """
+    Subclass of `cSecp256K1.KeyRing` allowing secure filesystem saving and
+    loading. It is also linked to mainsail network configuration to select
+    appropriate Schnorr signature specification (bcrypto 4.10 or BIP 340) to be
+    applied.
+
+    ```python
+    >>> import os
+    >>> signer = identity.KeyRing.create(int.from_bytes(os.urandom(32)))
+    >>> signer  # KeyRing is a subclass of builtin int
+    40367812022907163119325945335177282621496014100307111368749805816184299969\
+919
+    >>> sig = signer.sign("simple message")
+    >>> puk = signer.puk()  # compute associated public key
+    >>> signer.verify(puk, "simple message", sig)
+    True
+    >>> type(signer)  # bcrypto 4.10 specification used
+    <class 'mainsail.identity.Bcrpt410'>
+    ```
+    """
 
     def dump(self, pin: Union[bytes, List[int]]) -> None:
+        """
+        Securely dump `KeyRing` into filesystem using pin code. Override
+        existing file if any.
+
+        Args:
+            pin (bytes|List[int]): pin code used to encrypt KeyRing. Pin code
+                may be a list of short (0 < int < 255) or a bytes string.
+
+        ```python
+        >>> signer.dump([0, 0, 0, 0])  # dump into filesystem using pin 0000
+        >>> signer.dump(b"\\x00\\x00\\x00\\x00")  # equivalent
+        ```
+        """
         code = binascii.hexlify(bytes(pin))
-        filename = encryptionFilename(code.decode("utf-8"))
+        filename = encryption_file_path(code.decode("utf-8"))
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         with open(filename, "wb") as output:
             code = hashlib.sha256(code).hexdigest()
             output.write(encrypt(f"{self:064x}", code))
 
     @staticmethod
+    def load(pin: Union[bytes, List[int]]):
+        """
+        Securely load KeyRing from filesystem using pin code.
+
+        Args:
+            pin (bytes|List[int]): pin code used to encrypt KeyRing. Pin code
+                may be a list of short (0 < int < 255) or a bytes string.
+
+        Returns:
+            Schnorr|Bcrpt410: signer object.
+
+        ```python
+        >>> identity.KeyRing.load([0, 0, 0, 0])
+        4036781202290716311932594533517728262149601410030711136874980581618429\
+9969919
+        >>> identity.KeyRing.load(b"\\x00\\x00\\x00\\x00")
+        4036781202290716311932594533517728262149601410030711136874980581618429\
+9969919
+        ```
+        """
+        code = binascii.hexlify(bytes(pin))
+        filename = encryption_file_path(code.decode("utf-8"))
+        if os.path.exists(filename):
+            with open(filename, "rb") as input:
+                code = hashlib.sha256(code).hexdigest()
+                data = binascii.unhexlify(decrypt(input.read(), code))
+                return get_signer()(int.from_bytes(data, "big"))
+        else:
+            raise InvalidDecryption("no keyring paired with given pin code")
+
+    @staticmethod
     def create(obj: int = None):
-        return (
-            Schnorr if getattr(config, "bip340", False) else Bcrpt410
-        )(obj)
+        """
+        Create a `KeyRing` signer subclass with the appropriate schnorr
+        signature specification.
 
-    @staticmethod
-    def load(pin: Union[bytes, List[int]]):
-        return (
-            Schnorr if getattr(config, "bip340", False) else Bcrpt410
-        ).load(pin)
+        Args:
+            obj (int): the value of the private key.
 
-
-class Bcrpt410(KeyRing, cSecp256k1.Bcrpt410):
-
-    @staticmethod
-    def load(pin: Union[bytes, List[int]]):
-        code = binascii.hexlify(bytes(pin))
-        filename = encryptionFilename(code.decode("utf-8"))
-        if os.path.exists(filename):
-            with open(filename, "rb") as input:
-                code = hashlib.sha256(code).hexdigest()
-                data = binascii.unhexlify(decrypt(input.read(), code))
-                return Bcrpt410(int.from_bytes(data, "big"))
-        else:
-            raise InvalidDecryption("no keyring paired with given pin code")
+        Returns:
+            Schnorr|Bcrpt410: signer object.
+        """
+        return get_signer()(obj)
 
 
-class Schnorr(KeyRing, cSecp256k1.Schnorr):
-
-    @staticmethod
-    def load(pin: Union[bytes, List[int]]):
-        code = binascii.hexlify(bytes(pin))
-        filename = encryptionFilename(code.decode("utf-8"))
-        if os.path.exists(filename):
-            with open(filename, "rb") as input:
-                code = hashlib.sha256(code).hexdigest()
-                data = binascii.unhexlify(decrypt(input.read(), code))
-                return Schnorr(int.from_bytes(data, "big"))
-        else:
-            raise InvalidDecryption("no keyring paired with given pin code")
+class Schnorr(cSecp256k1.Schnorr, KeyRing):
+    pass
 
 
-def bip39Hash(secret: str, passphrase: str = "") -> bytes:
-    # bip39 hash method
-    # validated on https://iancoleman.io/bip39/
+class Bcrpt410(cSecp256k1.Bcrpt410, KeyRing):
+    pass
+
+
+def get_signer():
+    "Returns the the network appropriate signer."
+    return Schnorr if getattr(config, "bip340", False) else Bcrpt410
+
+
+def bip39_hash(secret: str, passphrase: str = "") -> bytes:
+    "Returns bip39 hash bytes string."
     return hashlib.pbkdf2_hmac(
         "sha512", unicodedata.normalize("NFKD", secret).encode("utf-8"),
         unicodedata.normalize("NFKD", f"mnemonic{passphrase}").encode("utf-8"),
@@ -88,11 +146,10 @@ def bip39Hash(secret: str, passphrase: str = "") -> bytes:
     )
 
 
-def encryptionFilename(code: str) -> str:
-    name = binascii.hexlify(bip39Hash(code)).decode("utf-8")
-    return os.path.join(
-        os.path.dirname(__file__), ".keyrings", f"{name[:32]}.krg"
-    )
+def encryption_file_path(code: str) -> str:
+    "Returns signer encryption file path"
+    name = binascii.hexlify(bip39_hash(code)).decode("utf-8")
+    return os.path.join(DATA, f"{name[:32]}.krg")
 
 
 def encrypt(data: str, pin: str) -> bytes:
@@ -110,14 +167,14 @@ def decrypt(data: bytes, pin: str) -> str:
         return False
 
 
-def combinePublicKey(*puki) -> str:
+def combine_puk(*puki) -> str:
     P = cSecp256k1.PublicKey.decode(puki[0])
     for puk in puki[1:]:
         P += cSecp256k1.PublicKey.decode(puk)
     return P.encode()
 
 
-def getWallet(puk: str, version: int = None) -> str:
+def get_wallet(puk: str, version: int = None) -> str:
     ripemd160 = hashlib.new('ripemd160', binascii.unhexlify(puk)).digest()[:20]
     seed = binascii.unhexlify(f"{version or config.version:02x}") + ripemd160
     b58 = base58.b58encode_check(seed)
@@ -125,22 +182,25 @@ def getWallet(puk: str, version: int = None) -> str:
 
 
 def sign(
-    data: Union[str, bytes], prk: Union[KeyRing, str, int] = None,
+    data: Union[str, bytes], prk: Union[KeyRing, List[int], str, int] = None,
     format: str = "raw"
 ) -> str:
     """
-    Compute raw Schnorr signature from data using private key according to
-    bcrypto 4.10 spec or BIP340 specification.
+    Compute Schnorr signature from data using private key according to bcrypto
+    4.10 spec or BIP340 specification. Signature format is RAW by defaul but
+    can also be specified a DER.
 
     Args:
         data (str|bytes): data used for signature computation.
-        prk (str|int|KeyRing): private key or keyring.
+        prk (KeyRing|List[int]|str|int): private key, keyring or pin code.
         format (str): `raw` or `der` to determine signature format output.
 
     Returns:
         str: Schnorr signature in raw format (ie r | s) by default.
     """
-    if not isinstance(prk, KeyRing):
+    if isinstance(prk, list):
+        prk = KeyRing.load(prk)
+    elif not isinstance(prk, KeyRing):
         prk = KeyRing.create(prk)
     return getattr(
         prk.sign(data.encode("utf-8") if isinstance(data, str) else data),
@@ -148,35 +208,34 @@ def sign(
     )()
 
 
-def userKeys(secret: Union[int, bytes, str]) -> dict:
+def user_keys(secret: Union[int, str]) -> dict:
     """
     Generate keyring containing secp256k1 keys-pair and wallet import format
     (WIF).
 
     Args:
-        secret (str, bytes or int): anything that could issue a private key on
-            secp256k1 curve.
+        secret (str|int): anything that could issue a private key on secp256k1
+            curve.
 
     Returns:
         dict: public, private and WIF keys.
     """
     if isinstance(secret, int):
         privateKey = "%064x" % secret
-        seed = binascii.unhexlify(privateKey)
-    elif isinstance(secret, (bytes, str)):
+    elif isinstance(secret, str):
         privateKey = cSecp256k1.hash_sha256(secret).decode("utf-8")
-        seed = binascii.unhexlify(privateKey)
+    seed = binascii.unhexlify(privateKey)
 
     return {
         "publicKey": cSecp256k1.PublicKey.from_seed(seed).encode(),
         "privateKey": privateKey,
-        "wif": getWIF(seed)
+        "wif": wif_keys(seed)
     }
 
 
-def validatorKeys(secret: str) -> dict:
+def validator_keys(secret: str) -> dict:
     privateKey = blspy.AugSchemeMPL.derive_child_sk(
-        blspy.AugSchemeMPL.key_gen(bip39Hash(secret)), 0
+        blspy.AugSchemeMPL.key_gen(bip39_hash(secret)), 0
     )
     return {
         "validatorPrivateKey": bytes(privateKey).hex(),
@@ -184,15 +243,15 @@ def validatorKeys(secret: str) -> dict:
     }
 
 
-def getWIF(seed: bytes) -> str:
+def wif_keys(seed: bytes) -> Union[str, None]:
     """
-    Compute WIF address from seed.
+    Compute WIF key from seed.
 
     Args:
         seed (bytes): a sha256 sequence bytes.
 
     Returns:
-        base58: the WIF address.
+        str: the WIF key.
     """
     if hasattr(config, "wif"):
         seed = binascii.unhexlify(f"{config.wif:02x}") + seed[:32] + b"\x01"
