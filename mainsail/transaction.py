@@ -24,26 +24,6 @@ TX_ATTRIBUTES = [
 class Transaction:
     """
     Generic transaction class.
-
-    Attributes:
-        amount (int):
-        asset (dict):
-        id (str):
-        blockId (str):
-        network (int):
-        recipientId (str):
-        secondSignature (str):
-        signature (str):
-        signatures (list):
-        signSignature (str):
-        nonce (int):
-        type (int):
-        typeGroup (int):
-        vendorField (str|bytes):
-        version (int):
-        lockTransactionId (str):
-        lockSecret (str):
-        expiration (int):
     """
     APB_MODE: int = 0  # TODO: continue APB_MODE dev
 
@@ -234,11 +214,13 @@ class Transaction:
     def multiSign(
         self, prki: Union[identity.KeyRing, str, int] = None
     ) -> bool:
-        sig = identity.sign(
+        if not isinstance(prki, identity.KeyRing):
+            prki = identity.KeyRing.create(prki)
+        sig = prki.sign(
             binascii.unhexlify(
                 self.serialize(SKIP_SIG1 | SKIP_SIG2 | SKIP_MSIG)
-            ), prki, "raw"
-        )
+            )
+        ).raw()
         return self.appendMultiSig(sig, prki.puk().encode())
 
     def appendMultiSig(self, signature: str, puk: str = None) -> bool:

@@ -6,10 +6,11 @@ This module provides v1 transaction builders.
 import re
 import base58
 import getpass
+import binascii
 import cSecp256k1
 
 from typing import Union
-from mainsail.transaction import Transaction
+from mainsail.transaction import Transaction, SKIP_SIG1, SKIP_SIG2
 from mainsail import config, rest, identity, TYPE_GROUPS, TYPES
 
 __all__ = [
@@ -92,11 +93,24 @@ class Vote(Transaction):
         puk = rest.GET.api.wallets(validator).get("publicKey")
         if puk not in self.asset["votes"]:
             self.asset["votes"] = [puk]
-            self.checkAsset()
 
     def downVote(self, validator: str) -> None:
         puk = rest.GET.api.wallets(validator).get("publicKey")
         self.asset["unvotes"] = [puk]
+
+    def sign(
+        self, prk: Union[identity.KeyRing, str, int] = None,
+        nonce: int = None
+    ) -> None:
+        if not isinstance(prk, identity.KeyRing):
+            prk = identity.KeyRing.create(prk)
+        self.senderPublicKey = prk.puk().encode()
+        if nonce:
+            self.nonce = nonce
+        self.checkAsset()
+        self.signature = prk.sign(
+            binascii.unhexlify(self.serialize(SKIP_SIG1 | SKIP_SIG2))
+        ).raw()
 
 
 class MultiSignature(Transaction):
