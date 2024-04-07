@@ -122,6 +122,6 @@ GET = EndPoint(ports=["api-development", "api-http", "core-api"])
 # transaction pool root endpoint
 POST = EndPoint(ports=["api-transaction-pool", "core-api"], func=requests.post)
 # webhook root endpoints
-WHK = EndPoint(ports=["api-webhook"])
-WHKP = EndPoint(ports=["api-webhook"], func=requests.post)
-WHKD = EndPoint(ports=["api-webhook"], func=requests.delete)
+WHK = EndPoint(ports=["api-webhook", "core-webhooks"])
+WHKP = EndPoint(ports=["api-webhook", "core-webhooks"], func=requests.post)
+WHKD = EndPoint(ports=["api-webhook", "core-webhooks"], func=requests.delete)

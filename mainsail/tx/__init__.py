@@ -19,7 +19,7 @@ v_modules = sorted(
 exec(f"from mainsail.tx.{v_modules[-1]} import *")
 
 
-def deserialize(serial: str):
+def deserialize(serial: str) -> Transaction:
     """
     Build a transaction from hexadecimal string.
 

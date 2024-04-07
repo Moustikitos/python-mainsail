@@ -63,3 +63,4 @@ docs/_build/
 site/
 mkdocs.yml
 uwlt/
+*.zip
