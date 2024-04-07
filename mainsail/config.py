@@ -8,16 +8,14 @@ DATA = os.path.join(os.getenv("HOME"), ".mainsail", ".networks")
 _track = []
 
 
-def _clear():
+def _clear() -> None:
     for name in _track:
         delattr(sys.modules[__name__], name)
     _track.clear()
 
 
-def _dump():
-    path = os.path.join(
-        DATA, f"{getattr(sys.modules[__name__], 'network')}.net"
-    )
+def _dump(name: str) -> None:
+    path = os.path.join(DATA, f"{name}.net")
     os.makedirs(DATA, exist_ok=True)
     with open(path, "wb") as output:
         pickle.dump(
@@ -28,7 +26,7 @@ def _dump():
         )
 
 
-def _load(name):
+def _load(name: str) -> bool:
     path = os.path.join(DATA, f"{name}.net")
     if os.path.exists(path):
         _clear()
@@ -36,3 +34,5 @@ def _load(name):
             for attr, value in pickle.load(input).items():
                 setattr(sys.modules[__name__], attr, value)
                 _track.append(attr)
+        return True
+    return False

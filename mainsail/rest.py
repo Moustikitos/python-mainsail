@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Network endpoint managment module.
-
-
 """
 
 import random
@@ -94,8 +92,8 @@ def use_network(peer: str) -> None:
         config._dump(nethash)
 
 
-def load_network(name: str):
-    config._load(name)
+def load_network(name: str) -> bool:
+    return config._load(name)
 
 
 def get_peers(peer: str, latency: int = 200) -> None:
@@ -120,9 +118,9 @@ def get_peers(peer: str, latency: int = 200) -> None:
 
 
 # api root endpoints
-GET = EndPoint(ports=["api-development", "api-http"])
+GET = EndPoint(ports=["api-development", "api-http", "core-api"])
 # transaction pool root endpoint
-POST = EndPoint(ports=["api-transaction-pool"], func=requests.post)
+POST = EndPoint(ports=["api-transaction-pool", "core-api"], func=requests.post)
 # webhook root endpoints
 WHK = EndPoint(ports=["api-webhook"])
 WHKP = EndPoint(ports=["api-webhook"], func=requests.post)
