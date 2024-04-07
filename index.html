@@ -82,15 +82,15 @@
             
             <li class="nav-item" data-level="1"><a href="#python-mainsail" class="nav-link">python-mainsail</a>
               <ul class="nav flex-column">
-            <li class="nav-item" data-level="2"><a href="#rest-api" class="nav-link">REST API</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
             <li class="nav-item" data-level="2"><a href="#available-transactions" class="nav-link">Available transactions</a>
               <ul class="nav flex-column">
               </ul>
             </li>
             <li class="nav-item" data-level="2"><a href="#features" class="nav-link">Features</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#support-this-project" class="nav-link">Support this project</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -104,12 +104,9 @@
 <h1 id="python-mainsail">python-mainsail</h1>
 <p>This package aims to provide a simple implementation to bake offline <code>Ark</code>
 transaction and interact with the blockchain API.</p>
-<h2 id="rest-api">REST API</h2>
-<pre><code class="language-python">&gt;&gt;&gt; from mainsail import rest
-&gt;&gt;&gt; rest.use_network(&quot;http://49.13.30.19:4003&quot;)
-</code></pre>
-<h3 id="get">GET</h3>
-<pre><code class="language-python">&gt;&gt;&gt; # http://xxx.xxx.xxx.xxx:4006/api/wallets/toons
+<pre><code class="language-python">&gt;&gt;&gt; from mainsail.tx.v1 import Transfer
+&gt;&gt;&gt; from mainsail import rest
+&gt;&gt;&gt; # http://xxx.xxx.xxx.xxx:4006/api/wallets/toons
 &gt;&gt;&gt; wallet = rest.GET.api.wallets.toons()
 &gt;&gt;&gt; wallet[&quot;address&quot;]
 'D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv'
@@ -120,14 +117,10 @@ transaction and interact with the blockchain API.</p>
 &gt;&gt;&gt; # http://49.13.30.19:4003/api/transactions?type=4
 &gt;&gt;&gt; [t[&quot;blockId&quot;] for t in rest.GET.api.transactions(type=4, peer=custom_peer)[&quot;data&quot;]]
 ['41afebd995473aab76e8dd7415ab742a6882a08f4c0e0a7305d1a48c551c955c', 'aff37ad0288fadc9d5fdec584d1affab2df0021e86cde3ecb2ba263d6deba3cc']
-</code></pre>
-<h3 id="post">POST</h3>
-<pre><code class="language-python">&gt;&gt;&gt; from mainsail.tx.v1 import Transfer
 &gt;&gt;&gt; t = Transfer(1, 'D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv', 'message \U0001f919')
 &gt;&gt;&gt; t.sign()
 Type or paste your passphrase &gt;
-&gt;&gt;&gt; # http://xxx.xxx.xxx.xxx:4007/api/transaction-pool
-&gt;&gt;&gt; rest.POST.api(&quot;transaction-pool&quot;, transactions=[t.serialize()])
+&gt;&gt;&gt; t.send()
 {'data': {'accept': [0], 'broadcast': [0], 'excess': [], 'invalid': []}}
 </code></pre>
 <h2 id="available-transactions">Available transactions</h2>
@@ -146,7 +139,11 @@ Type or paste your passphrase &gt;
 <li class="task-list-item"><input type="checkbox" disabled checked/> secured private keys storage</li>
 <li class="task-list-item"><input type="checkbox" disabled checked/> secured webhook subscriptions storage</li>
 <li class="task-list-item"><input type="checkbox" disabled checked/> offline network configuration available</li>
-</ul></div>
+</ul>
+<h2 id="support-this-project">Support this project</h2>
+<!-- [![Liberapay receiving](https://img.shields.io/liberapay/goal/Toons?logo=liberapay)](https://liberapay.com/Toons/donate) -->
+<p><a href="https://paypal.me/toons"><img alt="Paypal me" src="https://img.shields.io/badge/PayPal-toons-00457C?logo=paypal&amp;logoColor=white" /></a>
+<a href="https://github.com/Moustikitos/python-mainsail/blob/master/docs/img/bc1q6aqr0hfq6shwlaux8a7ydvncw53lk2zynp277x.png"><img alt="Bitcoin" src="https://img.shields.io/badge/Donate-bc1q6aqr0hfq6shwlaux8a7ydvncw53lk2zynp277x-ff9900?logo=bitcoin" /></a></p></div>
             </div>
         </div>
 
@@ -230,5 +227,5 @@ Type or paste your passphrase &gt;
 
 <!--
 MkDocs version : 1.5.3
-Build Date UTC : 2024-04-07 18:56:03.255695+00:00
+Build Date UTC : 2024-04-07 18:57:49.189836+00:00
 -->
