@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Identity - Python mainsail project</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css">
+        <link href="../style.css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-light bg-light">
+            <div class="container">
+                <a class="navbar-brand" href="..">Python mainsail project</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href=".." class="nav-link">Home</a>
+                            </li>
+                            <li class="navitem active">
+                                <a href="./" class="nav-link">Identity</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href=".." class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" class="nav-link disabled">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/Moustikitos/python-mainsail/edit/master/docs/identity.md" class="nav-link"><i class="fa fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#module-mainsailidentity" class="nav-link">Module mainsail.identity</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#keyring-objects" class="nav-link">KeyRing Objects</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#get_signer" class="nav-link">get_signer</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#bip39_hash" class="nav-link">bip39_hash</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#sign" class="nav-link">sign</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#user_keys" class="nav-link">user_keys</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#wif_keys" class="nav-link">wif_keys</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<p><a id="mainsail.identity"></a></p>
+<h1 id="module-mainsailidentity">Module mainsail.identity</h1>
+<p>This modules provides cryptographic primitives to interact with blockchain.</p>
+<pre><code class="language-python">&gt;&gt;&gt; from mainsail import identity
+</code></pre>
+<p><a id="mainsail.identity.KeyRing"></a></p>
+<h2 id="keyring-objects">KeyRing Objects</h2>
+<pre><code class="language-python">class KeyRing(cSecp256k1.KeyRing)
+</code></pre>
+<p>Subclass of <code>cSecp256K1.KeyRing</code> allowing secure filesystem saving and
+loading. It is also linked to mainsail network configuration to select
+appropriate Schnorr signature specification (bcrypto 4.10 or BIP 340) to be
+applied.</p>
+<pre><code class="language-python">&gt;&gt;&gt; import os
+&gt;&gt;&gt; signer = identity.KeyRing.create(int.from_bytes(os.urandom(32)))
+&gt;&gt;&gt; signer  # KeyRing is a subclass of builtin int
+40367812022907163119325945335177282621496014100307111368749805816184299969919
+&gt;&gt;&gt; sig = signer.sign(&quot;simple message&quot;)
+&gt;&gt;&gt; puk = signer.puk()  # compute associated public key
+&gt;&gt;&gt; signer.verify(puk, &quot;simple message&quot;, sig)
+True
+&gt;&gt;&gt; type(signer)  # bcrypto 4.10 specification used
+&lt;class 'mainsail.identity.Bcrpt410'&gt;
+</code></pre>
+<p><a id="mainsail.identity.KeyRing.dump"></a></p>
+<h3 id="keyringdump">KeyRing.dump</h3>
+<pre><code class="language-python">def dump(pin: Union[bytes, List[int]]) -&gt; None
+</code></pre>
+<p>Securely dump <code>KeyRing</code> into filesystem using pin code. Override
+existing file if any.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>pin</code> <em>bytes|List[int]</em> - pin code used to _encrypt KeyRing. Pin code
+  may be a list of short (0 &lt; int &lt; 255) or a bytes string.</li>
+</ul>
+<pre><code class="language-python">&gt;&gt;&gt; signer.dump([0, 0, 0, 0])  # dump into filesystem using pin 0000
+&gt;&gt;&gt; signer.dump(b&quot;\x00\x00\x00\x00&quot;)  # equivalent
+</code></pre>
+<p><a id="mainsail.identity.KeyRing.load"></a></p>
+<h3 id="keyringload">KeyRing.load</h3>
+<pre><code class="language-python">@staticmethod
+def load(pin: Union[bytes, List[int]])
+</code></pre>
+<p>Securely load KeyRing from filesystem using pin code.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>pin</code> <em>bytes|List[int]</em> - pin code used to _encrypt KeyRing. Pin code
+  may be a list of short (0 &lt; int &lt; 255) or a bytes string.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>Schnorr|Bcrpt410</code> - signer object.</li>
+</ul>
+<pre><code class="language-python">&gt;&gt;&gt; identity.KeyRing.load([0, 0, 0, 0])
+40367812022907163119325945335177282621496014100307111368749805816184299969919
+&gt;&gt;&gt; identity.KeyRing.load(b&quot;\x00\x00\x00\x00&quot;)
+40367812022907163119325945335177282621496014100307111368749805816184299969919
+</code></pre>
+<p><a id="mainsail.identity.KeyRing.create"></a></p>
+<h3 id="keyringcreate">KeyRing.create</h3>
+<pre><code class="language-python">@staticmethod
+def create(obj: int = None)
+</code></pre>
+<p>Create a <code>KeyRing</code> signer subclass with the appropriate schnorr
+signature specification.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>obj</code> <em>int</em> - the value of the private key.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>Schnorr|Bcrpt410</code> - signer object.</li>
+</ul>
+<p><a id="mainsail.identity.get_signer"></a></p>
+<h2 id="get_signer">get_signer</h2>
+<pre><code class="language-python">def get_signer()
+</code></pre>
+<p>Returns the the network appropriate signer.</p>
+<p><a id="mainsail.identity.bip39_hash"></a></p>
+<h2 id="bip39_hash">bip39_hash</h2>
+<pre><code class="language-python">def bip39_hash(secret: str, passphrase: str = &quot;&quot;) -&gt; bytes
+</code></pre>
+<p>Returns bip39 hash bytes string. This function does not check mnemonic
+integrity.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>secret</code> <em>str</em> - a mnemonic string.</li>
+<li><code>passphrase</code> <em>str</em> - salt string.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>bytes</code> - 64 length bytes string.</li>
+</ul>
+<p><a id="mainsail.identity.sign"></a></p>
+<h2 id="sign">sign</h2>
+<pre><code class="language-python">def sign(data: Union[str, bytes],
+         prk: Union[KeyRing, List[int], str, int] = None,
+         format: str = &quot;raw&quot;) -&gt; str
+</code></pre>
+<p>Compute Schnorr signature from data using private key according to bcrypto
+4.10 spec or BIP340 specification. Signature format is RAW by defaul but
+can also be specified a DER.</p>
+<pre><code class="language-python">&gt;&gt;&gt; prk = identity.KeyRing.load([0,0,0,0])
+&gt;&gt;&gt; identity.sign(&quot;simple message&quot;, [0, 0, 0, 0])
+'5993cfb3d7dafdfe58a29e0dfc9ef332acc7bb1429ba720b20e7ea6b4a961dd0026ed229f5095581188816bf120bcad0d25cdada03a3add04bd539ab2ba3becb'
+&gt;&gt;&gt; identity.sign(&quot;simple message&quot;, prk)
+'5993cfb3d7dafdfe58a29e0dfc9ef332acc7bb1429ba720b20e7ea6b4a961dd0026ed229f5095581188816bf120bcad0d25cdada03a3add04bd539ab2ba3becb'
+&gt;&gt;&gt; identity.sign(&quot;simple message&quot;, 40367812022907163119325945335177282621496014100307111368749805816184299969919)
+'5993cfb3d7dafdfe58a29e0dfc9ef332acc7bb1429ba720b20e7ea6b4a961dd0026ed229f5095581188816bf120bcad0d25cdada03a3add04bd539ab2ba3becb'
+&gt;&gt;&gt; identity.sign(&quot;simple message&quot;, prk, &quot;der&quot;)
+'304402205993cfb3d7dafdfe58a29e0dfc9ef332acc7bb1429ba720b20e7ea6b4a961dd00220026ed229f5095581188816bf120bcad0d25cdada03a3add04bd539ab2ba3becb'
+</code></pre>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>data</code> <em>str|bytes</em> - data used for signature computation.</li>
+<li><code>prk</code> <em>KeyRing|List[int]|str|int</em> - private key, keyring or pin code.</li>
+<li><code>format</code> <em>str</em> - <code>raw</code> or <code>der</code> to determine signature format output.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>str</code> - Schnorr signature in raw format (ie r | s) by default.</li>
+</ul>
+<p><a id="mainsail.identity.user_keys"></a></p>
+<h2 id="user_keys">user_keys</h2>
+<pre><code class="language-python">def user_keys(secret: Union[int, str]) -&gt; dict
+</code></pre>
+<p>Generate keyring containing secp256k1 keys-pair and wallet import format
+(WIF).</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>secret</code> <em>str|int</em> - anything that could issue a private key on secp256k1
+  curve.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>dict</code> - public, private and WIF keys.</li>
+</ul>
+<p><a id="mainsail.identity.wif_keys"></a></p>
+<h2 id="wif_keys">wif_keys</h2>
+<pre><code class="language-python">def wif_keys(seed: bytes) -&gt; Union[str, None]
+</code></pre>
+<p>Compute WIF key from seed.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>seed</code> <em>bytes</em> - a 32 length bytes string.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>str</code> - the WIF key.</li>
+</ul></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+                <p>Copyright &copy; 2024 THOORENS Bruno - BSD licence</p>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../js/jquery-3.6.0.min.js"></script>
+        <script src="../js/bootstrap.min.js"></script>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js"></script>
+        <script src="../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>
