@@ -114,7 +114,7 @@ def subscribe(peer: dict, event: str, target: str, *conditions) -> None:
 
 def verify(authorization: str) -> bool:
     filename = os.path.join(
-        DATA, rest.config.nethash, 
+        DATA, rest.config.nethash,
         hashlib.md5(authorization.encode("utf-8")).hexdigest()
     )
     try:
