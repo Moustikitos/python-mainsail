@@ -5,10 +5,14 @@ from unittest import TestCase
 from mainsail import rest, identity
 from mainsail.tx import v1
 
+ONLINE = rest.load_network(
+    "7b9a7c6a14d3f8fb3f47c434b8c6ef0843d5622f6c209ffeec5411aabbf4bf1c"
+)
+
 
 def is_online(func):
     def wrapper(*args, **kw):
-        if len(getattr(rest.config, "peers", [])):
+        if ONLINE:
             return func(*args, **kw)
         else:
             print(f"escaping function {func.__name__}")
@@ -16,9 +20,6 @@ def is_online(func):
 
 
 class BuilderTest(TestCase):
-
-    def setUp(self) -> None:
-        return super().setUp()
 
     def test_type_0(self) -> None:
         self.assertIsInstance(
