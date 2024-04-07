@@ -3,12 +3,9 @@ loaders:
 
 processors:
   - type: filter
-    expression: not name.startswith('_') and default()
     documented_only: true
-    do_not_filter_modules: true
   - type: smart
   - type: crossref
-
 
 renderer:
   output_directory: .
@@ -35,9 +32,10 @@ renderer:
     - title: Identity
       contents:
       - mainsail.identity.*
-    # - title: Transaction
-    #   contents:
-    #   - mainsail.transaction.*
+    - title: Transactions
+      contents:
+      - mainsail.tx.deserialize
+      - mainsail.tx.v1.*
 
   mkdocs_config:
     site_name: Python mainsail project

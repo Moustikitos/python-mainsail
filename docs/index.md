@@ -48,3 +48,9 @@ Type or paste your passphrase >
 * [x] ValidatorResignation
 * [x] UsernameRegistration
 * [x] UsernameResignation
+
+## Features
+
+* [x] secured private keys storage
+* [x] secured webhook subscriptions storage
+* [x] offline network configuration available
