@@ -15,11 +15,16 @@ kw = {
     "maintainer": "Toons",
     "maintainer_email": "moustikitos@gmail.com",
     "url": "https://github.com/Moustikitos/python-mainsail",
+    "project_urls": {  # Optional
+        "Bug Reports": "https://github.com/Moustikitos/python-mainsail/issues",
+        "Funding": "https://github.com/Moustikitos/python-mainsail?tab=readme-ov-file#support-this-project",
+        "Source": "https://github.com/Moustikitos/python-mainsail/",
+    },
     "include_package_data": True,
-    "description": "light api compatible with ARK blockchain and forks",
+    "description": "Interact with ARK blockchain and forks",
     "long_description": LONG_DESCRIPTION,
     "long_description_content_type": "text/markdown",
-    "install_requires": ["requests", "base58", "pyaes", "blspy"],
+    "install_requires": ["requests", "base58", "pyaes", "blspy", "cSecp256k1"],
     "dependency_links": [
         "https://github.com/Moustikitos/fast-curve#egg=cSecp256k1",
     ],
