@@ -7,7 +7,7 @@ with open("README.md") as f2:
     LONG_DESCRIPTION = f2.read()
 
 kw = {
-    "version": "1.0.0",
+    "version": "1.0.1",
     "name": "ark-mainsail",
     "keywords": ["api", "ark", "blockchain"],
     "author": "Toons",
@@ -25,9 +25,6 @@ kw = {
     "long_description": LONG_DESCRIPTION,
     "long_description_content_type": "text/markdown",
     "install_requires": ["requests", "base58", "pyaes", "blspy", "cSecp256k1"],
-    "dependency_links": [
-        "https://github.com/Moustikitos/fast-curve#egg=cSecp256k1",
-    ],
     "license": "Copyright 2024, MIT licence",
     "classifiers": [
         "Development Status :: 5 - Production/Stable",
