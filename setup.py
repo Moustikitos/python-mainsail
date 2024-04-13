@@ -7,7 +7,7 @@ with open("README.md") as f2:
     LONG_DESCRIPTION = f2.read()
 
 kw = {
-    "version": "1.0.1",
+    "version": "1.0.2",
     "name": "ark-mainsail",
     "keywords": ["api", "ark", "blockchain"],
     "author": "Toons",
@@ -17,7 +17,9 @@ kw = {
     "url": "https://github.com/Moustikitos/python-mainsail",
     "project_urls": {  # Optional
         "Bug Reports": "https://github.com/Moustikitos/python-mainsail/issues",
-        "Funding": "https://github.com/Moustikitos/python-mainsail?tab=readme-ov-file#support-this-project",
+        "Funding":
+            "https://github.com/Moustikitos/python-mainsail?tab=readme-ov-file"
+            "#support-this-project",
         "Source": "https://github.com/Moustikitos/python-mainsail/",
     },
     "include_package_data": True,
