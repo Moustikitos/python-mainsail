@@ -71,8 +71,7 @@ def dump(token: str) -> str:
     authorization = token[:32]  # "0c8e74e1cbfe36404386d33a5bbd8b66"
     verification = token[32:]   # "fe944e318edb02b979d6bf0c87978b64"
     filename = os.path.join(
-        DATA, rest.config.nethash,
-        hashlib.md5(authorization.encode("utf-8")).hexdigest()
+        DATA, hashlib.md5(authorization.encode("utf-8")).hexdigest()
     )
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     with io.open(filename, "wb") as out:
@@ -100,24 +99,21 @@ def subscribe(peer: dict, event: str, target: str, *conditions) -> None:
         conditions=[cond for cond in conditions if cond],
     ).get("data", {})
     if "token" in data:
-        print("security token :", data["token"])
         # build the security hash and keep only second token part and
         # save the used peer to be able to delete it later
+        data["nethash"] = getattr(rest.config, "nethash")
         data["dump"] = dump(data.pop("token"))
         data["peer"] = peer
-        dumpJson(
-            data, os.path.join(DATA, rest.config.nethash, data["id"] + ".json")
-        )
+        dumpJson(data, os.path.join(DATA, data["id"] + ".json"))
     else:
         raise Exception("webhook not created")
 
 
 def verify(authorization: str) -> bool:
-    filename = os.path.join(
-        DATA, rest.config.nethash,
-        hashlib.md5(authorization.encode("utf-8")).hexdigest()
-    )
     try:
+        filename = os.path.join(
+            DATA, hashlib.md5(authorization.encode("utf-8")).hexdigest()
+        )
         with io.open(filename, "rb") as in_:
             data = pickle.load(in_)
     except Exception:
@@ -129,19 +125,15 @@ def verify(authorization: str) -> bool:
 
 
 def list() -> list:
-    return [
-        name for name in next(
-            os.walk(os.path.join(DATA, rest.config.nethash))
-        )[-1] if name.endswith(".json")
-    ]
+    return [name for name in next(os.walk(DATA))[-1] if name.endswith(".json")]
 
 
 def open(whk_id: str) -> dict:
-    return loadJson(os.path.join(DATA, rest.config.nethash, whk_id + ".json"))
+    return loadJson(os.path.join(DATA, whk_id + ".json"))
 
 
 def unsubscribe(whk_id: str) -> dict:
-    whk_path = os.path.join(DATA, rest.config.nethash, whk_id + ".json")
+    whk_path = os.path.join(DATA, whk_id + ".json")
     if os.path.exists(whk_path):
         data = loadJson(whk_path)
         resp = rest.WHKD.api.webhooks(
