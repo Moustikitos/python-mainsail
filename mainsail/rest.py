@@ -3,7 +3,6 @@
 Network endpoint managment module.
 """
 
-import random
 import requests
 
 from typing import Union
@@ -39,17 +38,18 @@ class EndPoint(object):
             return object.__getattribute__(self, attr)
 
     def __call__(self, *path, **data) -> Union[list, dict, requests.Response]:
-        peer, n = data.pop("peer", False), 10
-        # n tries to fetch a valid peer
+        peer, n = data.pop("peer", False), len(config.peers)
+        # tries to fetch a valid peer
         while peer is False and n >= 0:
             # get a random peer from available network peers
-            peer = random.choice(config.peers)
+            peer = config.peers.pop(0)
+            config.peers.append(peer)
             # match attended ports and enabled ports
             peer = \
                 False if not len(set(self.ports) & set(peer["ports"].keys())) \
                 else peer
             n -= 1
-        # if n unsuccessful tries
+        # if unsuccessful
         if peer is False:
             raise ApiError(
                 f"no peer available with '{self.ports}' port enabled"
@@ -96,7 +96,7 @@ def load_network(name: str) -> bool:
     return config._load(name)
 
 
-def get_peers(peer: str, latency: int = 200) -> None:
+def get_peers(peer: str, latency: int = 500) -> None:
     resp = sorted(
         requests.get(
             f"{peer}/api/peers", headers={'Content-type': 'application/json'}

@@ -5,7 +5,7 @@ import binascii
 from io import BytesIO
 from typing import Union, TextIO
 from mainsail import config, serializer, deserializer, identity, rest
-from mainsail import pack, pack_bytes, unpack, unpack_bytes
+from mainsail import pack, pack_bytes, unpack, unpack_bytes, XTOSHI
 
 # bit masks for serialization options
 SKIP_SIG1 = 0b100  # skip signature
@@ -29,7 +29,6 @@ class Transaction:
 
     amount: int = 0
     asset: dict = None
-    id: str = None
     blockId: str = None
     network: int = None
     recipientId: str = None
@@ -45,6 +44,11 @@ class Transaction:
     lockTransactionId: str = None
     lockSecret: str = None
     expiration: int = 0
+
+    @property
+    def id(self):
+        return \
+            identity.cSecp256k1.hash_sha256(self.serialize()).decode("utf-8")
 
     @property
     def vendorFieldHex(self):
@@ -64,7 +68,7 @@ class Transaction:
         # if value is str it should starts with either 'min', 'avg' or 'max'
         # TODO: isinstance int -> arktoshi/bytes mode (APB_MODE)
         if isinstance(value, float):
-            self._fee = int(value * 100000000)
+            self._fee = int(value * XTOSHI)
         elif isinstance(value, str):
             value = value[:3]
             # to match tx name in cfg.fees, lowercase the first char of class

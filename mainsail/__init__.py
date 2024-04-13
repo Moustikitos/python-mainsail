@@ -8,6 +8,8 @@ import struct
 from typing import TextIO, Union
 from enum import IntEnum
 
+XTOSHI = 1e8
+
 
 class TYPES(IntEnum):
     TRANSFER = 0

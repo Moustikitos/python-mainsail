@@ -11,7 +11,7 @@ import cSecp256k1
 
 from typing import Union
 from mainsail.transaction import Transaction, SKIP_SIG1, SKIP_SIG2
-from mainsail import config, rest, identity, TYPE_GROUPS, TYPES
+from mainsail import config, rest, identity, TYPE_GROUPS, TYPES, XTOSHI
 
 __all__ = [
     "Transfer", "ValidatorRegistration", "ValidatorResignation",
@@ -39,7 +39,7 @@ class Transfer(Transaction):
         self.type = TYPES.TRANSFER.value
         self.fee = "avg"
 
-        self.amount = int(amount * 100000000)
+        self.amount = int(amount * XTOSHI)
         self.recipientId = recipientId
         if vendorField is not None:
             self.vendorField = vendorField
@@ -163,7 +163,7 @@ class MultiPayment(Transaction):
             self.addPayment(amount, address)
 
     def addPayment(self, amount: float, address: str):
-        amount = int(amount * 100000000)
+        amount = int(amount * XTOSHI)
         self.asset["payments"].append(
             {"recipientId": address, "amount": amount}
         )
