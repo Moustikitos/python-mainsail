@@ -48,14 +48,16 @@ def loadJson(path: str) -> Union[dict, list]:
     return data
 
 
-def dumpJson(data: Union[dict, list], path: str) -> None:
+def dumpJson(data: Union[dict, list], path: str, **opt) -> None:
     "Dump JSON data to path"
+    if "indent" not in opt:
+        opt["indent"] = 4
     try:
         os.makedirs(os.path.dirname(path))
     except Exception:
         pass
     with io.open(path, "w", encoding="utf-8") as out:
-        json.dump(data, out, indent=4)
+        json.dump(data, out, **opt)
     try:
         out.close()
         del out
