@@ -50,7 +50,7 @@ def update_forgery(block: dict) -> bool:
                 LOGGER.info(
                     f"Getting reward<{r / XTOSHI:.8f}> and "
                     f"fee<{f / XTOSHI:.8f}> "
-                    f"from block {block["id"]}"
+                    f"from block {block['id']}"
                 )
                 reward += r
                 fees += f
@@ -131,7 +131,7 @@ def freeze_forgery(puk: str, **options) -> None:
         )
     }
     dumpJson(
-        tbw, os.path.join(DATA, puk, f"{time.strftime("%Y%m%d-%H%M")}.forgery")
+        tbw, os.path.join(DATA, puk, f"{time.strftime('%Y%m%d-%H%M')}.forgery")
     )
 
     forgery.pop("blocks", 0)

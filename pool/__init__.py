@@ -3,12 +3,13 @@
 import os
 import sys
 import json
+import time
 import queue
 import flask
 import logging
 import threading
 
-from mainsail import webhook
+from mainsail import webhook, rest, loadJson
 from pool import tbw, biom
 
 # set basic logging
@@ -18,6 +19,7 @@ LOGGER.setLevel(logging.INFO)
 
 # create worker and its queue
 JOB = queue.Queue()
+PAYROLL = queue.Queue()
 
 # create the application instance
 app = flask.Flask(__name__)
@@ -40,7 +42,7 @@ app.config.update(
 
 
 @app.route("/block/forged", methods=["POST", "GET"])
-def spread():
+def manage_blocks():
     check = False
     if flask.request.method == "POST":
         check = webhook.verify(
@@ -56,8 +58,8 @@ def spread():
     return flask.jsonify({"acknowledge": check})
 
 
-def task():
-    LOGGER.info("entering worker loop")
+def main():
+    LOGGER.info("entering main loop")
     while True:
         block = JOB.get()
         if block not in [False, None]:
@@ -67,14 +69,56 @@ def task():
             except Exception as error:
                 LOGGER.info("----- error occured>")
                 LOGGER.info("%r", error)
-                # LOGGER.exception("----- error occured>")
             else:
                 LOGGER.info("update forgery> %s", result)
             finally:
                 biom.releaseLock(lock)
         elif block is False:
             break
-    LOGGER.info("worker loop exited")
+    LOGGER.info("main loop exited")
+
+
+def payroll():
+    LOGGER.info("entering payroll loop")
+    while True:
+        delay = PAYROLL.get()
+        if delay in [False, None]:
+            break
+        elif isinstance(delay, int):
+            if PAYROLL.qsize() == 0:
+                PAYROLL.put(delay)
+            time.sleep(delay)
+            LOGGER.info("sleep time finished, checking forgery...")
+            for filename in [
+                name for name in os.listdir(tbw.DATA)
+                if name.endswith(".json")
+            ]:
+                puk = filename.split(".")[0]
+                info = loadJson(os.path.join(tbw.DATA, filename))
+                forgery = loadJson(os.path.join(tbw.DATA, puk, "forgery.json"))
+                blocks = forgery.get("blocks", 0)
+                block_delay = info.get("block-delay", 1000)
+                if blocks > block_delay:
+                    lock = biom.acquireLock()
+                    try:
+                        tbw.freeze_forgery(puk)
+                    except Exception as error:
+                        LOGGER.info("----- error occured>")
+                        LOGGER.info("%r", error)
+                    else:
+                        LOGGER.info(f"{puk} forgery frozen")
+                    finally:
+                        biom.releaseLock(lock)
+                    tbw.bake_registry(puk)
+                    for registry in [
+                        reg for reg in os.listdir(os.path.join(tbw.DATA, puk))
+                        if reg.endswith(".registry")
+                    ]:
+                        tx = loadJson(os.path.join(tbw.DATA, puk, registry))
+                        LOGGER.info(
+                            rest.POST.api("transaction-pool", transactions=tx)
+                        )
+    LOGGER.info("payroll loop exited")
 
 
 def run(debug: bool = True):
@@ -87,6 +131,10 @@ def run(debug: bool = True):
         return app
 
 
-THREAD = threading.Thread(target=task)
-THREAD.daemon = True
-THREAD.start()
+MAIN = threading.Thread(target=main)
+MAIN.daemon = True
+MAIN.start()
+
+THREAD1 = threading.Thread(target=payroll)
+THREAD1.daemon = True
+THREAD1.start()

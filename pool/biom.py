@@ -157,7 +157,7 @@ def add_delegate(puk: str, **options) -> None:
     ip, port = parse.urlparse(webhook_peer).netloc.split(":")
     options["webhook"] = webhook.subscribe(
         {"ip": ip, "ports": {"api-webhook": port}}, "block.forged",
-        target_endpoint, webhook.condition(f"generatorPublicKey={puk}")
+        target_endpoint, webhook.condition(f"generatorPublicKey=={puk}")
     )
     options.update(prk=pincode, nethash=getattr(rest.config, "nethash"))
     dumpJson(options, os.path.join(DATA, f"{puk}.json"), ensure_ascii=False)
