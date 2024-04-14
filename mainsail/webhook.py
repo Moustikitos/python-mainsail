@@ -4,6 +4,7 @@ import io
 import os
 import re
 import pickle
+import logging
 import hashlib
 
 from mainsail import rest, dumpJson, loadJson
@@ -18,6 +19,10 @@ OPERATORS = {
     "\\": "regexp", "$": "contains",
     "<>": "between", "!<>": "not-between"
 }
+# set basic logging
+logging.basicConfig()
+LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.INFO)
 
 
 def condition(expr: str) -> dict:
@@ -54,7 +59,7 @@ between', 'key': 'amount'}
         key, _operator, value = REGEXP.match(expr).groups()
         operator = OPERATORS[_operator]
     except Exception as error:
-        print(">>> %r" % error)
+        LOGGER.info("%r", error)
     else:
         if "between" in operator:
             _min, _max = value.split(":")
@@ -105,6 +110,7 @@ def subscribe(peer: dict, event: str, target: str, *conditions) -> None:
         data["dump"] = dump(data.pop("token"))
         data["peer"] = peer
         dumpJson(data, os.path.join(DATA, data["id"] + ".json"))
+        return data["id"]
     else:
         raise Exception("webhook not created")
 
