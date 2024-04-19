@@ -9,13 +9,19 @@ import flask
 import logging
 import threading
 
-from mainsail import webhook, rest, loadJson
+from mainsail import webhook, rest, identity, loadJson, dumpJson
 from pool import tbw, biom
+from typing import Union, List
 
 # set basic logging
 logging.basicConfig()
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
+LOGGER.setLevel(logging.DEBUG)
+
+DELEGATE_PARAMETERS = [
+    "share", "min_vote", "max_vote", "peer", "vendorField", "excludes",
+    "block_delay", "message", "chunck_size"
+]
 
 # create worker and its queue
 JOB = queue.Queue()
@@ -41,21 +47,96 @@ app.config.update(
 )
 
 
+def secure_headers(
+    headers: dict = {},
+    prk: Union[identity.KeyRing, List[int], str, int] = None
+) -> dict:
+    if isinstance(prk, list):
+        prk = identity.KeyRing.load(prk)
+    elif not isinstance(prk, identity.KeyRing):
+        prk = identity.KeyRing.create(prk)
+    nonce = os.urandom(64).hex()
+    headers.update(
+        nonce=nonce,
+        sig=prk.sign(nonce).raw(),
+        puk=prk.puk().encode()
+    )
+    return headers
+
+
+def check_headers(headers: dict) -> bool:
+    try:
+        return identity.get_signer().verify(
+            headers["puk"], headers["nonce"], headers["sig"]
+        )
+    except KeyError:
+        return False
+
+
+def secured_request(
+    endpoint: rest.EndPoint, data: dict = None,
+    prk: Union[identity.KeyRing, List[int], str, int] = None,
+    headers: dict = {}, peer: dict = None
+) -> flask.Response:
+    endpoint.headers = secure_headers(headers, prk)
+    if data is None:
+        return endpoint(peer=peer)
+    else:
+        return endpoint(data=data, peer=peer)
+
+
+@app.route("/configure/payroll", methods=["POST"])
+def configure_tasks():
+    if check_headers(flask.request.headers):
+        if flask.request.method == "POST":
+            data = json.loads(flask.request.data).get("data", {})
+            PAYROLL.put(int(data["delay"]))
+            return flask.jsonify({"status": 204}), 204
+    else:
+        return flask.jsonify({"status": 403}), 403
+
+
+@app.route("/configure/delegate/", methods=["POST", "GET"])
+def manage_delegate() -> flask.Response:
+    if check_headers(flask.request.headers):
+        puk = flask.request.headers["puk"]
+        path = os.path.join(tbw.DATA, f"{puk}.json")
+        if not os.path.exists(path):
+            return flask.jsonify({"status": 404}), 404
+        data = json.loads(flask.request.data).get("data", {})
+        info = dict(
+            loadJson(path), **dict(
+                [k, v] for k, v in data.items() if k in DELEGATE_PARAMETERS
+            )
+        )
+        if flask.request.method == "POST":
+            LOGGER.debug(f"--- received> {data}")
+            LOGGER.info(f"updating {puk} info> {info}")
+            dumpJson(info, path, ensure_ascii=False)
+            return flask.jsonify({"status": 204}), 204
+        else:
+            info.pop("prk", None)
+            return flask.jsonify(info), 200
+    else:
+        return flask.jsonify({"status": 403}), 403
+
+
 @app.route("/block/forged", methods=["POST", "GET"])
-def manage_blocks():
+def manage_blocks() -> flask.Response:
     check = False
     if flask.request.method == "POST":
         check = webhook.verify(
             flask.request.headers.get("Authorization", "")[:32]
-        ) or True  # -> for debug only
+        )
         LOGGER.info("webhook check> %s", check)
         if check is True and flask.request.data != b'':
             data = json.loads(flask.request.data)
-            LOGGER.info("data> %s", data)
-            JOB.put(data.get("data", None))
+            block = data.get("data", {}).get("block", {}).get("data", {})
+            LOGGER.debug("block received> %s", block)
+            JOB.put(block)
         else:
             check = False
-    return flask.jsonify({"acknowledge": check})
+    return flask.jsonify({"acknowledge": check}), 200 if check else 403
 
 
 def main():
@@ -66,9 +147,8 @@ def main():
             lock = biom.acquireLock()
             try:
                 result = tbw.update_forgery(block)
-            except Exception as error:
-                LOGGER.info("----- error occured>")
-                LOGGER.info("%r", error)
+            except Exception:
+                LOGGER.exception("---- error occured>")
             else:
                 LOGGER.info("update forgery> %s", result)
             finally:
@@ -97,14 +177,13 @@ def payroll():
                 info = loadJson(os.path.join(tbw.DATA, filename))
                 forgery = loadJson(os.path.join(tbw.DATA, puk, "forgery.json"))
                 blocks = forgery.get("blocks", 0)
-                block_delay = info.get("block-delay", 1000)
+                block_delay = info.get("block_delay", 1000)
                 if blocks > block_delay:
                     lock = biom.acquireLock()
                     try:
                         tbw.freeze_forgery(puk)
-                    except Exception as error:
-                        LOGGER.info("----- error occured>")
-                        LOGGER.info("%r", error)
+                    except Exception:
+                        LOGGER.exception("---- error occured>")
                     else:
                         LOGGER.info(f"{puk} forgery frozen")
                     finally:
