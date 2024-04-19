@@ -38,7 +38,7 @@ class EndPoint(object):
             return object.__getattribute__(self, attr)
 
     def __call__(self, *path, **data) -> Union[list, dict, requests.Response]:
-        peer, n = data.pop("peer", False), len(config.peers)
+        peer, n = data.pop("peer", False), len(getattr(config, "peers", []))
         # tries to fetch a valid peer
         while peer is False and n >= 0:
             # get a random peer from available network peers
@@ -57,8 +57,9 @@ class EndPoint(object):
         # else do HTTP request call
         ports = list(set(self.ports) & set(peer["ports"].keys()))
         resp = self.func(
-            f"http://{peer['ip']}:{peer['ports'][ports[0]]}/{self.path}/"
-            f"{'/'.join(path)}" + (f"?{urlencode(data)}" if len(data) else ""),
+            f"http://{peer['ip']}:{peer['ports'][ports[0]]}/{self.path}" +
+            ("/" + f"{'/'.join(path)}" if len(path) else "") +
+            (f"?{urlencode(data)}" if len(data) else ""),
             headers=self.headers,
             json=data
         )
@@ -120,7 +121,9 @@ def get_peers(peer: str, latency: int = 500) -> None:
 # api root endpoints
 GET = EndPoint(ports=["api-development", "api-http", "core-api"])
 # transaction pool root endpoint
-POST = EndPoint(ports=["api-transaction-pool", "core-api"], func=requests.post)
+POST = EndPoint(
+    ports=["api-transaction-pool", "api-http", "core-api"], func=requests.post
+)
 # webhook root endpoints
 WHK = EndPoint(ports=["api-webhook", "core-webhooks"])
 WHKP = EndPoint(ports=["api-webhook", "core-webhooks"], func=requests.post)
