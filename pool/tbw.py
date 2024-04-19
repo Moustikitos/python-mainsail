@@ -13,74 +13,90 @@ logging.basicConfig()
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 DATA = os.path.join(os.getenv("HOME"), ".mainsail", ".pools")
+PEER = {"ip": "127.0.0.1", "ports": {"api-http": 4003}}
+
+
+class UnknownValidator(Exception):
+    pass
 
 
 def update_forgery(block: dict) -> bool:
     # 1. GET GENERATOR PUBLIC KEY PARAMETERS
     publicKey = block["generatorPublicKey"]
     info = loadJson(os.path.join(DATA, f"{publicKey}.json"))
+    if info == {}:
+        raise UnknownValidator(f"{publicKey} has no subcription here")
     excludes = info.get("excludes", [])
     # Minimum vote and maximum vote have to be converted to Xtoshi.
     min_vote = info.get("min_vote", 1) * XTOSHI
     max_vote = info.get("max_vote", int(1e6)) * XTOSHI
     share = info.get("share", 1.0)
+    peer = info.get("peer", PEER)
     # Load network.
     rest.load_network(info["nethash"])
-    address = identity.get_wallet(publicKey)
+    # address = identity.get_wallet(publicKey)
 
     # 2. GET FEES AND REWARDS SINCE LAST FORGED BLOCK
-    reward = fees = blocks = 0
     last_block = loadJson(os.path.join(DATA, publicKey, "last.block"))
     # If no block found save the first one and exit.
     if last_block == {}:
         dumpJson(block, os.path.join(DATA, publicKey, "last.block"))
         return False
-    i = 1
-    while i > 0:
-        # Go through all blocks forged by generator public key from the last
-        # one the previous ones. This is done when for some reasons the worker
-        # didn't parse block sent through node subscription.
-        for nexious_block in getattr(
-            rest.GET.api.wallets, address
-        ).blocks(orderBy="height:desc", page=i).get("data", []):
-            if nexious_block["height"] == block["height"] or \
-               nexious_block["height"] > last_block["height"]:
-                r = int(nexious_block["reward"])
-                f = int(nexious_block["fees"])
-                LOGGER.info(
-                    f"Getting reward<{r / XTOSHI:.8f}> and "
-                    f"fee<{f / XTOSHI:.8f}> "
-                    f"from block {block['id']}"
-                )
-                reward += r
-                fees += f
-                blocks += 1
-            # Exit if the highest block in blockchain is below the one sent by
-            # webhook or if all unparsed blocks have be parsed.
-            else:
-                i = 0  # -> exit infinite loop
-            i += 1  # - go to next API page
+
+    blocks = 1
+    reward = int(block["reward"])
+    fee = int(block["totalFee"])
+    # get all unparsed blocks till the last forged
+    unparsed_blocks, page, last_height = [], 1, last_block["height"]
+    while page > 0:  # infinite loop
+        resp = rest.GET.api.delegates(
+            publicKey, "blocks", orderBy="height:desc", page=page, limit=100,
+            peer=peer
+        )
+        filtered_blocks = [
+            b for b in resp.get("data", []) if b["height"] > last_height
+        ]
+        unparsed_blocks.extend(filtered_blocks)
+        if len(filtered_blocks) < 100:
+            break  # -> exit infinite loop
+        page += 1  # -> go to next API page
+    # extract fees and rewards from unparsed blocks
+    LOGGER.debug(f"---- found {len(unparsed_blocks)} unparsed blocks")
+    blocks += len(unparsed_blocks)
+    for unparsed_block in unparsed_blocks:
+        forged = unparsed_block["forged"]
+        r = int(forged["reward"])
+        f = int(forged["fee"])
+        LOGGER.info(
+            f"Getting reward<{r / XTOSHI:.8f}> and "
+            f"fee<{f / XTOSHI:.8f}> "
+            f"from block {unparsed_block['id']}"
+        )
+        reward += r
+        fee += f
     # Apply the share and dump the block sent by webhook as the last one.
     shared_reward = int(math.floor(reward * share))
     generator_reward = reward - shared_reward
     dumpJson(block, os.path.join(DATA, publicKey, "last.block"))
 
     # 3. GET VOTER WEIGHTS
-    voters = {}
-    i = 1
-    while i > 0:
-        resp = getattr(rest.GET.api.wallets, address).voters(page=i)
+    voters, page = {}, 1
+    while page > 0:  # infinite loop
+        resp = rest.GET.api.delegates(
+            publicKey, "voters", page=page, peer=peer
+        )
         voters.update(
             (v["address"], int(v["balance"])) for v in resp.get("data", [])
             if v["address"] not in excludes
         )
         if resp.get("meta", {}).get("next", None) is None:
-            i = 0  # -> exit infinite loop
-        i += 1  # - go to next API page
+            break  # -> exit infinite loop
+        page += 1  # -> go to next API page
     # filter all voters using minimum and maximum votes
     voters = dict(
         [a, b] for a, b in voters.items() if b >= min_vote and b <= max_vote
     )
+    LOGGER.debug(f"---- found {len(voters)} valid voters")
     # compute vote weight amongs fltered voters
     vote_weight = float(sum(voters.values()))
     voters_weight = dict([a, b / vote_weight] for a, b in voters.items())
@@ -91,14 +107,14 @@ def update_forgery(block: dict) -> bool:
     new_contributions = dict([
         address, int(
             math.floor(
-                contributions[address] +
+                contributions.get(address, 0) +
                 shared_reward * voters_weight[address]
             )
         )
     ] for address in voters_weight)
     forgery["reward"] = forgery.get("reward", 0) + generator_reward
     forgery["blocks"] = forgery.get("blocks", 0) + blocks
-    forgery["fees"] = forgery.get("fees", 0) + fees
+    forgery["fee"] = forgery.get("fee", 0) + fee
     forgery["contributions"] = new_contributions
     dumpJson(forgery, os.path.join(DATA, publicKey, "forgery.json"))
 
@@ -123,7 +139,7 @@ def freeze_forgery(puk: str, **options) -> None:
     forgery = loadJson(os.path.join(DATA, puk, "forgery.json"))
     tbw = {
         "timestamp": f"{datetime.datetime.now()}",
-        "validator-share": forgery.get("reward", 0) + forgery.get("fees", 0),
+        "validator-share": forgery.get("reward", 0) + forgery.get("fee", 0),
         "voter-shares": dict(
             [voter, amount]
             for voter, amount in forgery.get("contributions", {}).items()
@@ -136,7 +152,7 @@ def freeze_forgery(puk: str, **options) -> None:
 
     forgery.pop("blocks", 0)
     forgery.pop("reward", 0)
-    forgery.pop("fees", 0)
+    forgery.pop("fee", 0)
     forgery["contributions"] = dict(
         [voter, 0 if voter in tbw["voter-shares"] else amount]
         for voter, amount in forgery.get("contributions", {}).items()

@@ -68,7 +68,7 @@ class IdentityError(Exception):
     pass
 
 
-def deploy(host="127.0.0.1", port=5000):
+def deploy(host: str = "127.0.0.1", port: int = 5000):
     normpath = os.path.normpath
     executable = normpath(sys.executable)
 
@@ -157,12 +157,9 @@ def add_delegate(puk: str, **options) -> None:
     ip, port = parse.urlparse(webhook_peer).netloc.split(":")
     options["webhook"] = webhook.subscribe(
         {"ip": ip, "ports": {"api-webhook": port}}, "block.forged",
-        target_endpoint, webhook.condition(f"generatorPublicKey=={puk}")
+        target_endpoint, webhook.condition(
+            f"block.data.generatorPublicKey=={puk}"
+        )
     )
     options.update(prk=pincode, nethash=getattr(rest.config, "nethash"))
-    dumpJson(options, os.path.join(DATA, f"{puk}.json"), ensure_ascii=False)
-
-
-def configure_delegate(puk: str, **options) -> None:
-    options.update(loadJson(os.path.join(DATA, f"{puk}.json")))
     dumpJson(options, os.path.join(DATA, f"{puk}.json"), ensure_ascii=False)
