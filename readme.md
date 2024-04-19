@@ -24,6 +24,33 @@ Type or paste your passphrase >
 {'data': {'accept': [0], 'broadcast': [0], 'excess': [], 'invalid': []}}
 ```
 
+## [RIPEMD160 issue with OpenSSL v>=3](https://github.com/openssl/openssl/issues/16994)
+
+Get the installation folder:
+
+```bash
+openssl version -d
+```
+
+Make sure that the openssl config file contains following lines:
+
+```conf
+openssl_conf = openssl_init
+
+[openssl_init]
+providers = provider_sect
+
+[provider_sect]
+default = default_sect
+legacy = legacy_sect
+
+[default_sect]
+activate = 1
+
+[legacy_sect]
+activate = 1
+```
+
 ## Available transactions
 
 * [x] Transfer
