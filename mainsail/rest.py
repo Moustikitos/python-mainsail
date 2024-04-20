@@ -58,7 +58,9 @@ class EndPoint(object):
         if "url" in peer:
             base_url = peer["url"]
         else:
-            ports = list(ports) or ["requests"]
+            ports = list(
+                ports or set(self.ports) & set(peer.get("ports", {}).keys())
+            ) or ["requests"]
             base_url = \
                 f"http://{peer.get('ip', '127.0.0.1')}:" \
                 f"{peer.get('ports', {}).get(ports[0], 5000)}"

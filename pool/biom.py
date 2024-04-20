@@ -166,7 +166,7 @@ def add_delegate(puk: str, **options) -> None:
             or "http://127.0.0.1:5000/block/forged"
         try:
             resp = requests.post(target_endpoint, timeout=2)
-            if resp.status_code != 200:
+            if resp.status_code not in [200, 403]:
                 target_endpoint = None
         except KeyboardInterrupt:
             print("\n")
@@ -186,3 +186,4 @@ def add_delegate(puk: str, **options) -> None:
     options.update(prk=pincode, nethash=getattr(rest.config, "nethash"))
     dumpJson(options, os.path.join(DATA, f"{puk}.json"), ensure_ascii=False)
     os.makedirs(os.path.join(DATA, puk), exist_ok=True)
+    LOGGER.info(f"delegate {puk} set")
