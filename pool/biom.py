@@ -9,7 +9,7 @@ import logging
 import requests
 
 from urllib import parse
-from mainsail import identity, rest, webhook, dumpJson
+from mainsail import identity, rest, webhook, dumpJson, loadJson
 from pool.tbw import DATA
 
 # set basic logging
@@ -183,7 +183,9 @@ def add_delegate(puk: str, **options) -> None:
             f"block.data.generatorPublicKey=={puk}"
         )
     )
+    path = os.path.join(DATA, f"{puk}.json")
     options.update(prk=pincode, nethash=getattr(rest.config, "nethash"))
-    dumpJson(options, os.path.join(DATA, f"{puk}.json"), ensure_ascii=False)
+    options.update(loadJson(path))
+    dumpJson(options, path, ensure_ascii=False)
     os.makedirs(os.path.join(DATA, puk), exist_ok=True)
     LOGGER.info(f"delegate {puk} set")
