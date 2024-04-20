@@ -79,6 +79,7 @@ activate = 1
 
 ## Features
 
+* [x] pool managment tools
 * [x] secured private keys storage
 * [x] secured webhook subscriptions storage
 * [x] offline network configuration available
