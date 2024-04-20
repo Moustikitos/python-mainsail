@@ -39,13 +39,14 @@ class EndPoint(object):
 
     def __call__(self, *path, **data) -> Union[list, dict, requests.Response]:
         peer, n = data.pop("peer", False), len(getattr(config, "peers", []))
-        ports = set(self.ports) & set(peer.get("ports", {}).keys())
+        ports = {}  # void set
         # tries to fetch a valid peer
         while peer is False and n >= 0:
             # get a random peer from available network peers
             peer = config.peers.pop(0)
             config.peers.append(peer)
             # match attended ports and enabled ports
+            ports = set(self.ports) & set(peer.get("ports", {}).keys())
             peer = False if not len(ports) else peer
             n -= 1
         # if unsuccessful
