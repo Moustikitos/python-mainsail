@@ -73,4 +73,12 @@ echo ==============================
 export PYTHONPATH=${HOME}/python-mainsail
 cd ~/python-mainsail
 pip install -r requirements.txt -q
+pip install flask -q
 echo "done"
+
+echo
+echo deploying units
+echo ===============
+python -c "from pool import biom;biom.deploy('0.0.0.0', 5000)"
+echo "done"
+deactivate
