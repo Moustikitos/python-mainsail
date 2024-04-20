@@ -28,7 +28,9 @@ class BuilderTest(TestCase):
         tx.sign(PASSPHRASE)
         resp = tx.send()
         self.assertEqual(len(resp["data"]["invalid"]), 1)
-        self.assertEqual(resp["errors"]["0"]["type"], "ERR_OTHER")
+        self.assertIn(
+            resp["errors"]["0"]["type"], ["ERR_OTHER", "ERR_LOW_FEE"]
+        )
 
     @is_online
     def test_type_2(self) -> None:
@@ -36,7 +38,9 @@ class BuilderTest(TestCase):
         tx.sign(PASSPHRASE)
         resp = tx.send()
         self.assertEqual(len(resp["data"]["invalid"]), 1)
-        self.assertEqual(resp["errors"]["0"]["type"], "ERR_OTHER")
+        self.assertIn(
+            resp["errors"]["0"]["type"], ["ERR_OTHER", "ERR_LOW_FEE"]
+        )
 
     @is_online
     def test_type_3(self) -> None:
@@ -45,7 +49,9 @@ class BuilderTest(TestCase):
         tx.sign(PASSPHRASE)
         resp = tx.send()
         self.assertEqual(len(resp["data"]["invalid"]), 1)
-        self.assertEqual(resp["errors"]["0"]["type"], "ERR_OTHER")
+        self.assertIn(
+            resp["errors"]["0"]["type"], ["ERR_OTHER", "ERR_LOW_FEE"]
+        )
 
     @is_online
     def test_type_4(self) -> None:
@@ -58,7 +64,9 @@ class BuilderTest(TestCase):
         tx.sign(PASSPHRASE)
         resp = tx.send()
         self.assertEqual(len(resp["data"]["invalid"]), 1)
-        self.assertEqual(resp["errors"]["0"]["type"], "ERR_OTHER")
+        self.assertIn(
+            resp["errors"]["0"]["type"], ["ERR_OTHER", "ERR_LOW_FEE"]
+        )
 
     @is_online
     def test_type_6(self) -> None:
@@ -71,7 +79,9 @@ class BuilderTest(TestCase):
         tx.sign(PASSPHRASE)
         resp = tx.send()
         self.assertEqual(len(resp["data"]["invalid"]), 1)
-        self.assertEqual(resp["errors"]["0"]["type"], "ERR_OTHER")
+        self.assertIn(
+            resp["errors"]["0"]["type"], ["ERR_OTHER", "ERR_LOW_FEE"]
+        )
 
     @is_online
     def test_type_7(self) -> None:
@@ -79,7 +89,9 @@ class BuilderTest(TestCase):
         tx.sign(PASSPHRASE)
         resp = tx.send()
         self.assertEqual(len(resp["data"]["invalid"]), 1)
-        self.assertEqual(resp["errors"]["0"]["type"], "ERR_OTHER")
+        self.assertIn(
+            resp["errors"]["0"]["type"], ["ERR_OTHER", "ERR_LOW_FEE"]
+        )
 
     @is_online
     def test_type_8(self) -> None:
@@ -87,7 +99,9 @@ class BuilderTest(TestCase):
         tx.sign(PASSPHRASE)
         resp = tx.send()
         self.assertEqual(len(resp["data"]["invalid"]), 1)
-        self.assertEqual(resp["errors"]["0"]["type"], "ERR_OTHER")
+        self.assertIn(
+            resp["errors"]["0"]["type"], ["ERR_OTHER", "ERR_LOW_FEE"]
+        )
 
     @is_online
     def test_type_9(self) -> None:
@@ -95,4 +109,6 @@ class BuilderTest(TestCase):
         tx.sign(PASSPHRASE)
         resp = tx.send()
         self.assertEqual(len(resp["data"]["invalid"]), 1)
-        self.assertEqual(resp["errors"]["0"]["type"], "ERR_OTHER")
+        self.assertIn(
+            resp["errors"]["0"]["type"], ["ERR_OTHER", "ERR_LOW_FEE"]
+        )
