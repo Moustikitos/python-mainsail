@@ -39,15 +39,14 @@ class EndPoint(object):
 
     def __call__(self, *path, **data) -> Union[list, dict, requests.Response]:
         peer, n = data.pop("peer", False), len(getattr(config, "peers", []))
+        ports = set(self.ports) & set(peer.get("ports", {}).keys())
         # tries to fetch a valid peer
         while peer is False and n >= 0:
             # get a random peer from available network peers
             peer = config.peers.pop(0)
             config.peers.append(peer)
             # match attended ports and enabled ports
-            peer = \
-                False if not len(set(self.ports) & set(peer["ports"].keys())) \
-                else peer
+            peer = False if not len(ports) else peer
             n -= 1
         # if unsuccessful
         if peer is False:
@@ -55,14 +54,30 @@ class EndPoint(object):
                 f"no peer available with '{self.ports}' port enabled"
             )
         # else do HTTP request call
-        ports = list(set(self.ports) & set(peer["ports"].keys()))
-        resp = self.func(
-            f"http://{peer['ip']}:{peer['ports'][ports[0]]}/{self.path}" +
-            ("/" + f"{'/'.join(path)}" if len(path) else "") +
-            (f"?{urlencode(data)}" if len(data) else ""),
-            headers=self.headers,
-            json=data
-        )
+        if "url" in peer:
+            base_url = peer["url"]
+        else:
+            ports = list(ports) or ["requests"]
+            base_url = \
+                f"http://{peer.get('ip', '127.0.0.1')}:" \
+                f"{peer.get('ports', {}).get(ports[0], 5000)}"
+
+        path = '/'.join((self.path,) + path)
+        if base_url[-1] == "/":
+            base_url = base_url[:-1]
+        if path[0] != "/":
+            path = f"/{path}"
+
+        if self.func is requests.post:
+            resp = self.func(
+                f"{base_url}{path}", headers=self.headers, json=data
+            )
+        else:
+            resp = self.func(
+                f"{base_url}{path}"
+                f"{f'?{urlencode(data)}' if len(data) else ''}",
+                headers=self.headers,
+            )
         try:
             return resp.json()
         except requests.exceptions.JSONDecodeError:
@@ -119,11 +134,9 @@ def get_peers(peer: str, latency: int = 500) -> None:
 
 
 # api root endpoints
-GET = EndPoint(ports=["api-development", "api-http", "core-api"])
+GET = EndPoint(ports=["api-http", "api-development", "core-api"])
 # transaction pool root endpoint
-POST = EndPoint(
-    ports=["api-transaction-pool", "api-http", "core-api"], func=requests.post
-)
+POST = EndPoint(ports=["api-transaction-pool", "core-api"], func=requests.post)
 # webhook root endpoints
 WHK = EndPoint(ports=["api-webhook", "core-webhooks"])
 WHKP = EndPoint(ports=["api-webhook", "core-webhooks"], func=requests.post)
