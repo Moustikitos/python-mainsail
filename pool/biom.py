@@ -9,7 +9,7 @@ import logging
 import requests
 
 from urllib import parse
-from mainsail import identity, rest, webhook, loadJson, dumpJson
+from mainsail import identity, rest, webhook, dumpJson
 from pool.tbw import DATA
 
 # set basic logging
@@ -80,9 +80,25 @@ After=network.target
 [Service]
 User={os.environ.get('USER', 'unknown')}
 WorkingDirectory={normpath(sys.prefix)}
-Environment=PYTHONPATH={normpath(os.path.dirname(__file__))}
-ExecStart={os.path.dirname(executable)}/gunicorn pool:app \
---bind={host}:{port} --workers=5 --timeout 10 --access-logfile -
+Environment=PYTHONPATH={normpath(os.path.dirname(os.path.dirname(__file__)))}
+ExecStart={os.path.dirname(executable)}/gunicorn 'pool.api:run(debug=False)' \
+--bind={host}:{port} --workers=2 --timeout 10 --access-logfile -
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+""")
+
+    with io.open("./mnsl-bg.service", "w") as unit:
+        unit.write(f"""[Unit]
+Description=Mainsail pool backround tasks
+After=network.target
+
+[Service]
+User={os.environ.get("USER", "unknown")}
+WorkingDirectory={normpath(sys.prefix)}
+Environment=PYTHONPATH={normpath(os.path.dirname(os.path.dirname(__file__)))}
+ExecStart={normpath(sys.executable)} -m pool --workers=1 --access-logfile -
 Restart=always
 
 [Install]
@@ -91,11 +107,17 @@ WantedBy=multi-user.target
 
     if os.system(f"{executable} -m pip show gunicorn") != "0":
         os.system(f"{executable} -m pip install gunicorn")
+
     os.system("chmod +x ./mnsl-pool.service")
+    os.system("chmod +x ./mnsl-bg.service")
     os.system("sudo mv --force ./mnsl-pool.service /etc/systemd/system")
+    os.system("sudo mv --force ./mnsl-bg.service /etc/systemd/system")
+
     os.system("sudo systemctl daemon-reload")
     if not os.system("sudo systemctl restart mnsl-pool"):
         os.system("sudo systemctl start mnsl-pool")
+    if not os.system("sudo systemctl restart mnsl-bg"):
+        os.system("sudo systemctl start mnsl-bg")
 
 
 def add_delegate(puk: str, **options) -> None:
@@ -163,3 +185,4 @@ def add_delegate(puk: str, **options) -> None:
     )
     options.update(prk=pincode, nethash=getattr(rest.config, "nethash"))
     dumpJson(options, os.path.join(DATA, f"{puk}.json"), ensure_ascii=False)
+    os.makedirs(os.path.join(DATA, puk), exist_ok=True)

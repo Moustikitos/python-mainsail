@@ -15,6 +15,8 @@ LOGGER.setLevel(logging.INFO)
 DATA = os.path.join(os.getenv("HOME"), ".mainsail", ".pools")
 PEER = {"ip": "127.0.0.1", "ports": {"api-http": 4003}}
 
+os.makedirs(DATA, exist_ok=True)
+
 
 class UnknownValidator(Exception):
     pass
@@ -54,7 +56,8 @@ def update_forgery(block: dict) -> bool:
             peer=peer
         )
         filtered_blocks = [
-            b for b in resp.get("data", []) if b["height"] > last_height
+            b for b in resp.get("data", [])
+            if b["height"] > last_height and b["height"] < block["height"]
         ]
         unparsed_blocks.extend(filtered_blocks)
         if len(filtered_blocks) < 100:
@@ -77,7 +80,6 @@ def update_forgery(block: dict) -> bool:
     # Apply the share and dump the block sent by webhook as the last one.
     shared_reward = int(math.floor(reward * share))
     generator_reward = reward - shared_reward
-    dumpJson(block, os.path.join(DATA, publicKey, "last.block"))
 
     # 3. GET VOTER WEIGHTS
     voters, page = {}, 1
@@ -116,7 +118,29 @@ def update_forgery(block: dict) -> bool:
     forgery["blocks"] = forgery.get("blocks", 0) + blocks
     forgery["fee"] = forgery.get("fee", 0) + fee
     forgery["contributions"] = new_contributions
+    # compute checksum to determine lost XTOSHI due to roundings
+    checksum = (sum(new_contributions.values()) + forgery["reward"]) / XTOSHI
+    checksum /= max(1, forgery["blocks"])
+    checksum *= XTOSHI
+    lost = float(rest.config.constants["reward"]) - checksum
+    LOGGER.info(f"checksum: {checksum:.3f} -> {lost:.3f} XTOSHI lost")
+    if lost >= len(voters):
+        for voter in forgery["contributions"]:
+            forgery["contributions"][voter] += 1
+        lost -= len(voters)
+        LOGGER.info(
+            f"redistribution of {lost:d} lost XTOSHI to {len(voters)} voters "
+            "done"
+        )
+    forgery["lost"] = round(lost, 3)
+    # update true block weight state
+    dumpJson(block, os.path.join(DATA, publicKey, "last.block"))
     dumpJson(forgery, os.path.join(DATA, publicKey, "forgery.json"))
+    LOGGER.info(
+        f"{shared_reward / XTOSHI} token distributed to {len(voters)} voters "
+        f"- {generator_reward / XTOSHI} token plus {fee / XTOSHI} fee added "
+        f"to {identity.get_wallet(publicKey)} share"
+    )
 
     # 5. PRINT VOTE CHANGES
     for downvoter in list(set(contributions.keys()) - set(voters.keys())):
@@ -210,7 +234,3 @@ def bake_registry(puk: str) -> None:
                 pass
             else:
                 os.remove(os.path.join(DATA, puk, f"{name}.forgery"))
-
-
-def broadcast_registry() -> None:
-    pass

@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import os
-import sys
 import json
-import time
 import queue
 import flask
 import logging
-import threading
 
 from mainsail import webhook, rest, identity, loadJson, dumpJson
 from pool import tbw, biom
@@ -18,14 +15,17 @@ logging.basicConfig()
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
 
+CONF_PARAMETERS = [
+    "sleep_time"
+]
+
 DELEGATE_PARAMETERS = [
     "share", "min_vote", "max_vote", "peer", "vendorField", "excludes",
-    "block_delay", "message", "chunck_size"
+    "block_delay", "message", "chunck_size", "peer"
 ]
 
 # create worker and its queue
 JOB = queue.Queue()
-PAYROLL = queue.Queue()
 
 # create the application instance
 app = flask.Flask(__name__)
@@ -34,7 +34,7 @@ app.config.update(
     PERMANENT_SESSION_LIFETIME=300,
     # used to encrypt cookies
     # secret key is generated each time app is restarted
-    SECRET_KEY=os.urandom(24),
+    SECRET_KEY=os.urandom(32),
     # JS can't access cookies
     SESSION_COOKIE_HTTPONLY=True,
     # if use of https
@@ -66,11 +66,14 @@ def secure_headers(
 
 def check_headers(headers: dict) -> bool:
     try:
-        return identity.get_signer().verify(
-            headers["puk"], headers["nonce"], headers["sig"]
-        )
+        path = os.path.join(tbw.DATA, f"{headers['puk']}.json")
+        if not os.path.exists(path):
+            return identity.get_signer().verify(
+                headers["puk"], headers["nonce"], headers["sig"]
+            )
     except KeyError:
-        return False
+        pass
+    return False
 
 
 def secured_request(
@@ -85,24 +88,28 @@ def secured_request(
         return endpoint(data=data, peer=peer)
 
 
-@app.route("/configure/payroll", methods=["POST"])
-def configure_tasks():
+@app.route("/configure", methods=["POST"])
+def configure():
     if check_headers(flask.request.headers):
         if flask.request.method == "POST":
+            path = os.path.join(tbw.DATA, ".conf")
             data = json.loads(flask.request.data).get("data", {})
-            PAYROLL.put(int(data["delay"]))
+            conf = dict(
+                loadJson(path), **dict(
+                    [k, v] for k, v in data.items() if k in CONF_PARAMETERS
+                )
+            )
+            dumpJson(conf, path, ensure_ascii=False)
             return flask.jsonify({"status": 204}), 204
     else:
         return flask.jsonify({"status": 403}), 403
 
 
 @app.route("/configure/delegate/", methods=["POST", "GET"])
-def manage_delegate() -> flask.Response:
+def configure_delegate() -> flask.Response:
     if check_headers(flask.request.headers):
         puk = flask.request.headers["puk"]
         path = os.path.join(tbw.DATA, f"{puk}.json")
-        if not os.path.exists(path):
-            return flask.jsonify({"status": 404}), 404
         data = json.loads(flask.request.data).get("data", {})
         info = dict(
             loadJson(path), **dict(
@@ -122,7 +129,7 @@ def manage_delegate() -> flask.Response:
 
 
 @app.route("/block/forged", methods=["POST", "GET"])
-def manage_blocks() -> flask.Response:
+def block_forged() -> flask.Response:
     check = False
     if flask.request.method == "POST":
         check = webhook.verify(
@@ -156,64 +163,3 @@ def main():
         elif block is False:
             break
     LOGGER.info("main loop exited")
-
-
-def payroll():
-    LOGGER.info("entering payroll loop")
-    while True:
-        delay = PAYROLL.get()
-        if delay in [False, None]:
-            break
-        elif isinstance(delay, int):
-            if PAYROLL.qsize() == 0:
-                PAYROLL.put(delay)
-            time.sleep(delay)
-            LOGGER.info("sleep time finished, checking forgery...")
-            for filename in [
-                name for name in os.listdir(tbw.DATA)
-                if name.endswith(".json")
-            ]:
-                puk = filename.split(".")[0]
-                info = loadJson(os.path.join(tbw.DATA, filename))
-                forgery = loadJson(os.path.join(tbw.DATA, puk, "forgery.json"))
-                blocks = forgery.get("blocks", 0)
-                block_delay = info.get("block_delay", 1000)
-                if blocks > block_delay:
-                    lock = biom.acquireLock()
-                    try:
-                        tbw.freeze_forgery(puk)
-                    except Exception:
-                        LOGGER.exception("---- error occured>")
-                    else:
-                        LOGGER.info(f"{puk} forgery frozen")
-                    finally:
-                        biom.releaseLock(lock)
-                    tbw.bake_registry(puk)
-                    for registry in [
-                        reg for reg in os.listdir(os.path.join(tbw.DATA, puk))
-                        if reg.endswith(".registry")
-                    ]:
-                        tx = loadJson(os.path.join(tbw.DATA, puk, registry))
-                        LOGGER.info(
-                            rest.POST.api("transaction-pool", transactions=tx)
-                        )
-    LOGGER.info("payroll loop exited")
-
-
-def run(debug: bool = True):
-    global app
-    if debug:
-        app.run("127.0.0.1", 5000)
-        JOB.put(False)
-        sys.exit(1)
-    else:
-        return app
-
-
-MAIN = threading.Thread(target=main)
-MAIN.daemon = True
-MAIN.start()
-
-THREAD1 = threading.Thread(target=payroll)
-THREAD1.daemon = True
-THREAD1.start()
