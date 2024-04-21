@@ -4,19 +4,32 @@ import io
 import os
 import re
 import sys
+import json
+import base58
 import getpass
 import logging
 import requests
 
 from urllib import parse
+from pool import tbw
 from mainsail import identity, rest, webhook, dumpJson, loadJson
-from pool.tbw import DATA
+from typing import Union, List
 
 # set basic logging
 logging.basicConfig()
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
+DELEGATE_PARAMETERS = {
+    "share": float,
+    "min_vote": float,
+    "max_vote": float,
+    "peer": dict,
+    "excludes": list,
+    "block_delay": int,
+    "message": str,
+    "chunck_size": int
+}
 
 try:
     import fcntl
@@ -36,7 +49,7 @@ try:
         locked_file_descriptor.close()
         LOGGER.info("global lock released")
 
-except Exception:
+except ImportError:
     import msvcrt
 
     def acquireLock():
@@ -66,6 +79,47 @@ except Exception:
 
 class IdentityError(Exception):
     pass
+
+
+def secure_headers(
+    headers: dict = {},
+    prk: Union[identity.KeyRing, List[int], str, int] = None
+) -> dict:
+    if isinstance(prk, list):
+        prk = identity.KeyRing.load(prk)
+    elif not isinstance(prk, identity.KeyRing):
+        prk = identity.KeyRing.create(prk)
+    nonce = os.urandom(64).hex()
+    headers.update(
+        nonce=nonce,
+        sig=prk.sign(nonce).raw(),
+        puk=prk.puk().encode()
+    )
+    return headers
+
+
+def check_headers(headers: dict) -> bool:
+    try:
+        path = os.path.join(tbw.DATA, f"{headers['puk']}.json")
+        if os.path.exists(path):
+            return identity.get_signer().verify(
+                headers["puk"], headers["nonce"], headers["sig"]
+            )
+    except KeyError:
+        pass
+    return False
+
+
+def secured_request(
+    endpoint: rest.EndPoint, data: dict = None,
+    prk: Union[identity.KeyRing, List[int], str, int] = None,
+    headers: dict = {}, peer: dict = None
+) -> requests.Response:
+    endpoint.headers = secure_headers(headers, prk)
+    if data is None:
+        return endpoint(peer=peer)
+    else:
+        return endpoint(data=data, peer=peer)
 
 
 def deploy(host: str = "127.0.0.1", port: int = 5000):
@@ -131,7 +185,6 @@ def add_delegate(puk: str, **options) -> None:
         answer = getpass.getpass("enter pin code to secure secret> ")
     pincode = [int(e) for e in answer]
     prk.dump(pincode)
-
     # reach a network
     while not hasattr(rest.config, "nethash"):
         try:
@@ -142,7 +195,6 @@ def add_delegate(puk: str, **options) -> None:
         except Exception as error:
             LOGGER.info("%r", error)
             pass
-
     # reach a valid subscription node
     webhook_peer = None
     while webhook_peer is None:
@@ -158,14 +210,13 @@ def add_delegate(puk: str, **options) -> None:
         except Exception as error:
             LOGGER.info("%r", error)
             webhook_peer = None
-
     # reach a valid target endpoint
     target_endpoint = None
     while target_endpoint is None:
-        target_endpoint = input("provide a valid target endpoint> ") \
-            or "http://127.0.0.1:5000/block/forged"
+        target_endpoint = input("provide a valid target server> ") \
+            or "http://127.0.0.1:5000"
         try:
-            resp = requests.post(target_endpoint, timeout=2)
+            resp = requests.post(f"{target_endpoint}/block/forged", timeout=2)
             if resp.status_code not in [200, 403]:
                 target_endpoint = None
         except KeyboardInterrupt:
@@ -174,18 +225,64 @@ def add_delegate(puk: str, **options) -> None:
         except Exception as error:
             LOGGER.info("%r", error)
             target_endpoint = None
-
     # subscribe and save webhook id with other options
     ip, port = parse.urlparse(webhook_peer).netloc.split(":")
+    options.update(prk=pincode, nethash=getattr(rest.config, "nethash"))
     options["webhook"] = webhook.subscribe(
         {"ip": ip, "ports": {"api-webhook": port}}, "block.forged",
         target_endpoint, webhook.condition(
             f"block.data.generatorPublicKey=={puk}"
         )
     )
-    path = os.path.join(DATA, f"{puk}.json")
-    options.update(prk=pincode, nethash=getattr(rest.config, "nethash"))
-    options.update(loadJson(path))
-    dumpJson(options, path, ensure_ascii=False)
-    os.makedirs(os.path.join(DATA, puk), exist_ok=True)
+    # update delegate options
+    path = os.path.join(tbw.DATA, f"{puk}.json")
+    dumpJson(dict(options, **loadJson(path)), path, ensure_ascii=False)
+    os.makedirs(os.path.join(tbw.DATA, puk), exist_ok=True)
     LOGGER.info(f"delegate {puk} set")
+
+
+def set_delegate(peer: dict = {}, **options) -> requests.Response:
+    # update from command line
+    for arg in [a for a in sys.argv if "=" in a]:
+        key, value = arg.split("=")
+        key = key.replace("--", "").replace("-", "_")
+        options[key] = value
+    # asc pincode if no one is given
+    if "pincode" not in options:
+        answer = ""
+        while re.match(r"^[0-9]+$", answer) is None:
+            answer = getpass.getpass("enter validator secret pincode> ")
+    pincode = [int(e) for e in options.pop("pincode", answer)]
+    # manage parameters
+    params = {}
+    for key, value in options.items():
+        if key == "excludes":
+            addresses = []
+            for address in [
+                addr.strip() for addr in value.split(",") if addr != ""
+            ]:
+                try:
+                    base58.b58decode_check(address)
+                except Exception:
+                    pass
+                else:
+                    addresses.append(address)
+            params[key] = addresses
+
+        elif key == "peer":
+            try:
+                value = json.loads(value)
+            except Exception:
+                pass
+            else:
+                params[key] = addresses
+
+        elif key in DELEGATE_PARAMETERS.keys():
+            try:
+                params[key] = DELEGATE_PARAMETERS[key](value)
+            except Exception:
+                pass
+    # secure POST headers and send parameters
+    LOGGER.info(f"grabed options: {params}")
+    rest.POST.headers = secure_headers(rest.POST.headers, pincode)
+    return rest.POST.configure.delegate(peer=peer, **params)

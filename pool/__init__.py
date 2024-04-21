@@ -1,14 +1,39 @@
 # -*- coding: utf-8 -*-
 
+"""
+This package provides managment tools to run a pool on arkEcosystem mainsail
+framework. It computes a true block weight (TBW) distribution of block reward
+according to instant participant vote weight.
+
+## Install on Ubuntu
+
+```bash
+wget https://bit.ly/3U6BI8v
+bash mnsl-pool.sh
+```
+
+Setup script creates 7 commands into `~/.bash_aliases` file:
+
+* [x] `mnsl_pool_deploy` takes broadcast ip address and port to create
+  services managed by `systemd`.
+* [x] `add_validator` takes a validator public key to configure listening
+  subscription on blockchain.
+* [x] `mnsl_venv_activate` activates the virtual environment used to run
+  mainsail pool.
+* [x] `restart_mnsl_pool` restarts the server.
+* [x] `restart_mnsl_bg` restarts background tasks.
+* [x] `log_mnsl_pool` shows server logs.
+* [x] `log_mnsl_bg` shows background tasks logs.
+"""
+
 import os
 import json
 import queue
 import flask
 import logging
 
-from mainsail import webhook, rest, identity, loadJson, dumpJson
+from mainsail import webhook, loadJson, dumpJson
 from pool import tbw, biom
-from typing import Union, List
 
 # set basic logging
 logging.basicConfig()
@@ -19,10 +44,6 @@ CONF_PARAMETERS = [
     "sleep_time"
 ]
 
-DELEGATE_PARAMETERS = [
-    "share", "min_vote", "max_vote", "peer", "vendorField", "excludes",
-    "block_delay", "message", "chunck_size", "peer"
-]
 
 # create worker and its queue
 JOB = queue.Queue()
@@ -47,50 +68,9 @@ app.config.update(
 )
 
 
-def secure_headers(
-    headers: dict = {},
-    prk: Union[identity.KeyRing, List[int], str, int] = None
-) -> dict:
-    if isinstance(prk, list):
-        prk = identity.KeyRing.load(prk)
-    elif not isinstance(prk, identity.KeyRing):
-        prk = identity.KeyRing.create(prk)
-    nonce = os.urandom(64).hex()
-    headers.update(
-        nonce=nonce,
-        sig=prk.sign(nonce).raw(),
-        puk=prk.puk().encode()
-    )
-    return headers
-
-
-def check_headers(headers: dict) -> bool:
-    try:
-        path = os.path.join(tbw.DATA, f"{headers['puk']}.json")
-        if not os.path.exists(path):
-            return identity.get_signer().verify(
-                headers["puk"], headers["nonce"], headers["sig"]
-            )
-    except KeyError:
-        pass
-    return False
-
-
-def secured_request(
-    endpoint: rest.EndPoint, data: dict = None,
-    prk: Union[identity.KeyRing, List[int], str, int] = None,
-    headers: dict = {}, peer: dict = None
-) -> flask.Response:
-    endpoint.headers = secure_headers(headers, prk)
-    if data is None:
-        return endpoint(peer=peer)
-    else:
-        return endpoint(data=data, peer=peer)
-
-
 @app.route("/configure", methods=["POST"])
 def configure():
-    if check_headers(flask.request.headers):
+    if biom.check_headers(flask.request.headers):
         if flask.request.method == "POST":
             path = os.path.join(tbw.DATA, ".conf")
             data = json.loads(flask.request.data).get("data", {})
@@ -107,20 +87,21 @@ def configure():
 
 @app.route("/configure/delegate/", methods=["POST", "GET"])
 def configure_delegate() -> flask.Response:
-    if check_headers(flask.request.headers):
+    if biom.check_headers(flask.request.headers):
         puk = flask.request.headers["puk"]
         path = os.path.join(tbw.DATA, f"{puk}.json")
-        data = json.loads(flask.request.data).get("data", {})
+        data = json.loads(flask.request.data)
         info = dict(
             loadJson(path), **dict(
-                [k, v] for k, v in data.items() if k in DELEGATE_PARAMETERS
+                [k, v] for k, v in data.items()
+                if k in biom.DELEGATE_PARAMETERS.keys()
             )
         )
         if flask.request.method == "POST":
-            LOGGER.debug(f"--- received> {data}")
+            LOGGER.debug(f"---- received> {data}")
             LOGGER.info(f"updating {puk} info> {info}")
             dumpJson(info, path, ensure_ascii=False)
-            return flask.jsonify({"status": 204}), 204
+            return flask.jsonify({"status": 204, "updated": data}), 204
         else:
             info.pop("prk", None)
             return flask.jsonify(info), 200
@@ -155,7 +136,7 @@ def main():
             try:
                 result = tbw.update_forgery(block)
             except Exception:
-                LOGGER.exception("---- error occured>")
+                LOGGER.exception("#### error occured>")
             else:
                 LOGGER.info("update forgery> %s", result)
             finally:
