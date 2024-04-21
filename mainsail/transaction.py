@@ -8,9 +8,9 @@ from mainsail import config, serializer, deserializer, identity, rest
 from mainsail import pack, pack_bytes, unpack, unpack_bytes, XTOSHI
 
 # bit masks for serialization options
-SKIP_SIG1 = 0b100  # skip signature
-SKIP_SIG2 = 0b010  # skip second signature
-SKIP_MSIG = 0b001  # skip multiple signatures
+SKIP_SIG1 = 0b100  # skip signature mask.
+SKIP_SIG2 = 0b010  # skip second signature mask.
+SKIP_MSIG = 0b001  # skip multiple signatures mask.
 
 # list of attributes to be exported
 TX_ATTRIBUTES = [
@@ -134,7 +134,7 @@ class Transaction:
                 `SIG_MSIG`.
 
         Returns:
-            str: the serialized transaction as hex string.
+            str: the serialized transaction as hexadecimal string.
         """
         return self.serializeCommon() + self.serializeAsset() + \
             self.serializeSignatures(skip_mask)

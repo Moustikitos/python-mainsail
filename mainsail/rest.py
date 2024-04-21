@@ -76,7 +76,7 @@ class EndPoint(object):
                 None, None, None, None
             )
         base_url = base_url._replace(url='/'.join((self.path,) + path))
-        if self.func is requests.post:
+        if self.func in (requests.post, requests.delete):
             resp = self.func(urlunparse(base_url), headers=headers, json=data)
         else:
             base_url = base_url._replace(query=urlencode(data))
