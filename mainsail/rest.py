@@ -20,7 +20,7 @@ class EndPoint(object):
         self.headers = opt.pop("headers", {'Content-type': 'application/json'})
         self.ports = opt.pop("ports", "api-development")
         self.func = opt.pop("func", requests.get)
-        self.path = "/".join(path)
+        self.path = "/".join(path) or "/"
 
     def __getattr__(self, attr: str) -> object:
         if attr not in object.__getattribute__(self, "__dict__"):
