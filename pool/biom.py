@@ -174,7 +174,44 @@ WantedBy=multi-user.target
         os.system("sudo systemctl start mnsl-bg")
 
 
-def add_delegate(puk: str, **options) -> None:
+def _merge_options(**options):
+    # update from command line
+    for arg in [a for a in sys.argv if "=" in a]:
+        key, value = arg.split("=")
+        key = key.replace("--", "").replace("-", "_")
+        options[key] = value
+    # manage parameters
+    params = {}
+    for key, value in options.items():
+        if key == "excludes":
+            addresses = []
+            for address in [
+                addr.strip() for addr in value.split(",") if addr != ""
+            ]:
+                try:
+                    base58.b58decode_check(address)
+                except Exception:
+                    pass
+                else:
+                    addresses.append(address)
+            params[key] = addresses
+        elif key == "peer":
+            try:
+                value = json.loads(value)
+            except Exception:
+                pass
+            else:
+                params[key] = addresses
+        elif key in DELEGATE_PARAMETERS.keys():
+            try:
+                params[key] = DELEGATE_PARAMETERS[key](value)
+            except Exception:
+                pass
+    LOGGER.info(f"grabed options: {params}")
+    return params
+
+
+def add_delegate(puk: str, **kwargs) -> None:
     # check identity
     prk = identity.KeyRing.create()
     if prk.puk().encode() != puk:
@@ -227,62 +264,33 @@ def add_delegate(puk: str, **options) -> None:
             target_endpoint = None
     # subscribe and save webhook id with other options
     ip, port = parse.urlparse(webhook_peer).netloc.split(":")
-    options.update(prk=pincode, nethash=getattr(rest.config, "nethash"))
-    options["webhook"] = webhook.subscribe(
-        {"ip": ip, "ports": {"api-webhook": port}}, "block.forged",
-        target_endpoint, webhook.condition(
-            f"block.data.generatorPublicKey=={puk}"
+    options = _merge_options(
+        **kwargs, prk=pincode, nethash=getattr(rest.config, "nethash"),
+        webhook=webhook.subscribe(
+            {"ip": ip, "ports": {"api-webhook": port}}, "block.forged",
+            target_endpoint, webhook.condition(
+                f"block.data.generatorPublicKey=={puk}"
+            )
         )
     )
-    # update delegate options
+    # dump delegate options
     path = os.path.join(tbw.DATA, f"{puk}.json")
     dumpJson(dict(options, **loadJson(path)), path, ensure_ascii=False)
     os.makedirs(os.path.join(tbw.DATA, puk), exist_ok=True)
     LOGGER.info(f"delegate {puk} set")
 
 
-def set_delegate(peer: dict = {}, **options) -> requests.Response:
+def set_delegate(**kwargs) -> requests.Response:
     # update from command line
-    for arg in [a for a in sys.argv if "=" in a]:
-        key, value = arg.split("=")
-        key = key.replace("--", "").replace("-", "_")
-        options[key] = value
+    options = _merge_options(**kwargs)
     # asc pincode if no one is given
     if "pincode" not in options:
         answer = ""
         while re.match(r"^[0-9]+$", answer) is None:
             answer = getpass.getpass("enter validator secret pincode> ")
     pincode = [int(e) for e in options.pop("pincode", answer)]
-    # manage parameters
-    params = {}
-    for key, value in options.items():
-        if key == "excludes":
-            addresses = []
-            for address in [
-                addr.strip() for addr in value.split(",") if addr != ""
-            ]:
-                try:
-                    base58.b58decode_check(address)
-                except Exception:
-                    pass
-                else:
-                    addresses.append(address)
-            params[key] = addresses
-
-        elif key == "peer":
-            try:
-                value = json.loads(value)
-            except Exception:
-                pass
-            else:
-                params[key] = addresses
-
-        elif key in DELEGATE_PARAMETERS.keys():
-            try:
-                params[key] = DELEGATE_PARAMETERS[key](value)
-            except Exception:
-                pass
     # secure POST headers and send parameters
-    LOGGER.info(f"grabed options: {params}")
-    rest.POST.headers = secure_headers(rest.POST.headers, pincode)
-    return rest.POST.configure.delegate(peer=peer, **params)
+    return rest.POST.configure.delegate(
+        peer=options.get("peer", {}), **options,
+        headers=secure_headers(rest.POST.headers, pincode)
+    )

@@ -18,6 +18,7 @@ Setup script creates 7 commands into `~/.bash_aliases` file:
   services managed by `systemd`.
 * [x] `add_validator` takes a validator public key to configure listening
   subscription on blockchain.
+* [x] `set_validator` modifies validator TBW service parameters.
 * [x] `mnsl_venv_activate` activates the virtual environment used to run
   mainsail pool.
 * [x] `restart_mnsl_pool` restarts the server.
