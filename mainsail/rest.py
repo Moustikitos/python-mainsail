@@ -11,10 +11,12 @@ from urllib.parse import urlencode, urlparse, urlunparse
 from collections import namedtuple
 
 # namedtuple to match the internal signature of urlunparse
-Components = namedtuple(
-    typename='Components',
-    field_names=['scheme', 'netloc', 'url', 'path', 'query', 'fragment']
+Urltuple = namedtuple(
+    typename='Urltuple', field_names=[
+        'scheme', 'netloc', 'url', 'path', 'query', 'fragment'
+    ]
 )
+
 
 class ApiError(Exception):
     pass
@@ -63,13 +65,17 @@ class EndPoint(object):
                 f"no peer available with '{self.ports}' port enabled"
             )
         # else do HTTP request call
+        # build an Urltuple to be updated according to needs
         if "url" in peer:
             base_url = urlparse(peer["url"])
         else:
+            # if peer == {} return the a default base_url
+            # default -> ["requests"]
             ports = list(
                 ports or set(self.ports) & set(peer.get("ports", {}).keys())
             ) or ["requests"]
-            base_url = Components(
+            # default -> http://127.0.0.1:5000
+            base_url = Urltuple(
                 'http',
                 f"{peer.get('ip', '127.0.0.1')}:" +
                 f"{peer.get('ports', {}).get(ports[0], 5000)}",
