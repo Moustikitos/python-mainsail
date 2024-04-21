@@ -3,7 +3,9 @@
 import os
 import time
 import queue
+import binascii
 import threading
+
 from pool import tbw, biom, rest, identity, loadJson, dumpJson, LOGGER
 
 TASK = queue.Queue()
@@ -56,8 +58,12 @@ def payroll():
                         LOGGER.info(
                             rest.POST.api("transaction-pool", transactions=tx)
                         )
+                        hash = identity.cSecp256k1.hash_sha256
                         dumpJson(
-                            [identity.cSecp256k1.hash_sha256(s) for s in tx],
+                            [
+                                hash(binascii.unhexlify(s)).decode("utf-8")
+                                for s in tx
+                            ],
                             os.path.join(tbw.DATA, puk, f"{registry}.check")
                         )
     LOGGER.info("payroll loop exited")
@@ -89,10 +95,11 @@ def accountant():
                 ]:
                     ids = loadJson(os.path.join(tbw.DATA, puk, check))
                     for tx_id in ids[::]:
+                        LOGGER.info(f"transaction {tx_id} applied")
                         if rest.GET.api.transactions(
                             tx_id, peer=tbw.PEER
                         ).get("data", {}).get("confirmations") > 10:
-                            ids.pop(tx_id)
+                            ids.pop(ids.index(tx_id))
                     if len(ids) > 0:
                         dumpJson(ids, os.path.join(tbw.DATA, puk, check))
                     else:

@@ -83,14 +83,20 @@ python -c "from pool import biom;biom.deploy('0.0.0.0', 5000)"
 echo "done"
 deactivate
 
-echo
-echo creating commands
-echo =================
-touch ~/.bash_aliases
-echo "function add_delegate() { . ~/.local/share/mnsl-pool/venv/bin/activate && cd ~/python-mainsail && python -c \"from pool import biom;biom.add_delegate('\$1')\" ; deactivate ; cd ~ ; }" > ~/.bash_aliases
-echo "alias log_mnsl_pool=\"journalctl -u mnsl-pool.service -ef\"" >> ~/.bash_aliases
-echo "alias log_mnsl_bg=\"journalctl -u mnsl-bg.service -ef\"" >> ~/.bash_aliases
-echo "alias restart_mnsl_pool=\"sudo systemctl restart mnsl-pool.service\"" >> ~/.bash_aliases
-echo "alias restart_mnsl_bg=\"sudo systemctl restart mnsl-bg.service\"" >> ~/.bash_aliases
-echo "done"
-. ~/.bashrc
+if [ ! -f ~/.bash_aliases ]; then
+    echo
+    echo creating commands
+    echo =================
+
+    touch ~/.bash_aliases
+    echo "function mnsl_pool_deploy() { . ~/.local/share/mnsl-pool/venv/bin/activate && cd ~/python-mainsail && python -c \"from pool import biom;biom.deploy('\${1:-0.0.0.0}', int('\${2:-5000}'))\" ; deactivate ; cd ~ ; }" > ~/.bash_aliases
+    echo "function add_delegate() { . ~/.local/share/mnsl-pool/venv/bin/activate && cd ~/python-mainsail && python -c \"from pool import biom;biom.add_delegate('\$1')\" ; deactivate ; cd ~ ; }" >> ~/.bash_aliases
+    echo "alias log_mnsl_pool=\"journalctl -u mnsl-pool.service -ef\"" >> ~/.bash_aliases
+    echo "alias log_mnsl_bg=\"journalctl -u mnsl-bg.service -ef\"" >> ~/.bash_aliases
+    echo "alias restart_mnsl_pool=\"sudo systemctl restart mnsl-pool.service\"" >> ~/.bash_aliases
+    echo "alias restart_mnsl_bg=\"sudo systemctl restart mnsl-bg.service\"" >> ~/.bash_aliases
+    echo "alias mnsl_venv=\". ~/.local/share/mnsl-pool/venv/bin/activate\"" >> ~/.bash_aliases
+
+    echo "done"
+    . ~/.bashrc
+fi
