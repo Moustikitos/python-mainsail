@@ -85,6 +85,7 @@ if [ ! -f ~/.bash_aliases ]; then
     touch ~/.bash_aliases
     echo "function mnsl_pool_deploy() { . ~/.local/share/mnsl-pool/venv/bin/activate && cd ~/python-mainsail && python -c \"from pool import biom;biom.deploy('\${1:-0.0.0.0}', int('\${2:-5000}'))\" ; deactivate ; cd ~ ; }" > ~/.bash_aliases
     echo "function add_validator() { . ~/.local/share/mnsl-pool/venv/bin/activate && cd ~/python-mainsail && python -c \"from pool import biom;biom.add_delegate('\$1')\" ; deactivate ; cd ~ ; }" >> ~/.bash_aliases
+    echo "function set_validator() { . ~/.local/share/mnsl-pool/venv/bin/activate && cd ~/python-mainsail && python -c \"from pool import biom;biom.set_delegate()\" \$@ ; deactivate ; cd ~ ; }" >> ~/.bash_aliases
     echo "alias log_mnsl_pool=\"journalctl -u mnsl-pool.service -ef\"" >> ~/.bash_aliases
     echo "alias log_mnsl_bg=\"journalctl -u mnsl-bg.service -ef\"" >> ~/.bash_aliases
     echo "alias restart_mnsl_pool=\"sudo systemctl restart mnsl-pool.service\"" >> ~/.bash_aliases
