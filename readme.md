@@ -26,17 +26,30 @@ Type or paste your passphrase >
 
 ## Validator pool managment tool
 
-Installation:
+Install and deploy server:
 
 ```bash
 ~$ wget https://raw.githubusercontent.com/Moustikitos/python-mainsail/master/pool-install.sh
 ~$ bash pool-install.sh
+~$ mnsl_pool_deploy
+```
+
+Add delegate:
+
+```bash
 ~$ add_delegate 02968e862011738ac185e87f47dec61b32c842fd8e24fab625c02a15ad7e2d0f65
 Type or paste your passphrase>
 enter pin code to secure secret>
 provide a valid network peer> http://127.0.0.1:4003
 provide a valid webhook peer> http://127.0.0.1:4004
 provide a valid target endpoint> http://127.0.0.1:5000/block/forged
+```
+
+Check the logs:
+
+```bash
+~$ log_mnsl_pool
+~$ log_mnsl_bg
 ```
 
 ## [RIPEMD160 issue with OpenSSL v>=3](https://github.com/openssl/openssl/issues/16994) on ubuntu
