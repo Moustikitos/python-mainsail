@@ -7,8 +7,14 @@ import requests
 
 from typing import Union
 from mainsail import config
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse, urlunparse
+from collections import namedtuple
 
+# namedtuple to match the internal signature of urlunparse
+Components = namedtuple(
+    typename='Components',
+    field_names=['scheme', 'netloc', 'url', 'path', 'query', 'fragment']
+)
 
 class ApiError(Exception):
     pass
@@ -20,7 +26,7 @@ class EndPoint(object):
         self.headers = opt.pop("headers", {'Content-type': 'application/json'})
         self.ports = opt.pop("ports", "api-development")
         self.func = opt.pop("func", requests.get)
-        self.path = "/".join(path) or "/"
+        self.path = "/".join(path)
 
     def __getattr__(self, attr: str) -> object:
         if attr not in object.__getattribute__(self, "__dict__"):
@@ -38,11 +44,13 @@ class EndPoint(object):
             return object.__getattribute__(self, attr)
 
     def __call__(self, *path, **data) -> Union[list, dict, requests.Response]:
-        peer, n = data.pop("peer", False), len(getattr(config, "peers", []))
-        ports = {}  # void set
+        headers = data.pop("headers", self.headers)
+        peer = data.pop("peer", False)
+        n = len(getattr(config, "peers", []))
+        ports = set([])  # void set
         # tries to fetch a valid peer
         while peer is False and n >= 0:
-            # get a random peer from available network peers
+            # pot peer from available network peers and put it in the end
             peer = config.peers.pop(0)
             config.peers.append(peer)
             # match attended ports and enabled ports
@@ -56,31 +64,24 @@ class EndPoint(object):
             )
         # else do HTTP request call
         if "url" in peer:
-            base_url = peer["url"]
+            base_url = urlparse(peer["url"])
         else:
             ports = list(
                 ports or set(self.ports) & set(peer.get("ports", {}).keys())
             ) or ["requests"]
-            base_url = \
-                f"http://{peer.get('ip', '127.0.0.1')}:" \
-                f"{peer.get('ports', {}).get(ports[0], 5000)}"
-
-        path = '/'.join((self.path,) + path)
-        if base_url[-1] == "/":
-            base_url = base_url[:-1]
-        if path[0] != "/":
-            path = f"/{path}"
-
+            base_url = Components(
+                'http',
+                f"{peer.get('ip', '127.0.0.1')}:" +
+                f"{peer.get('ports', {}).get(ports[0], 5000)}",
+                None, None, None, None
+            )
+        base_url = base_url._replace(url='/'.join((self.path,) + path))
         if self.func is requests.post:
-            resp = self.func(
-                f"{base_url}{path}", headers=self.headers, json=data
-            )
+            resp = self.func(urlunparse(base_url), headers=headers, json=data)
         else:
-            resp = self.func(
-                f"{base_url}{path}"
-                f"{f'?{urlencode(data)}' if len(data) else ''}",
-                headers=self.headers,
-            )
+            base_url = base_url._replace(query=urlencode(data))
+            resp = self.func(urlunparse(base_url), headers=headers)
+
         try:
             return resp.json()
         except requests.exceptions.JSONDecodeError:
