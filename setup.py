@@ -7,7 +7,7 @@ with open("README.md") as f2:
     LONG_DESCRIPTION = f2.read()
 
 kw = {
-    "version": "1.1.0",
+    "version": "1.1.1",
     "name": "ark-mainsail",
     "keywords": ["api", "ark", "blockchain"],
     "author": "Toons",
@@ -22,7 +22,7 @@ kw = {
             "#support-this-project",
         "Source": "https://github.com/Moustikitos/python-mainsail/",
     },
-    "include_package_data": True,
+    "include_package_data": False,
     "description": "Interact with ARK blockchain and forks",
     "long_description": LONG_DESCRIPTION,
     "long_description_content_type": "text/markdown",
