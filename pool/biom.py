@@ -4,7 +4,6 @@ import io
 import os
 import re
 import sys
-import json
 import base58
 import getpass
 import logging
@@ -24,11 +23,12 @@ DELEGATE_PARAMETERS = {
     "share": float,
     "min_vote": float,
     "max_vote": float,
-    "peer": dict,
+    "min_share": float,
     "excludes": list,
     "block_delay": int,
     "message": str,
-    "chunck_size": int
+    "chunck_size": int,
+    "wallet": str
 }
 
 try:
@@ -183,7 +183,14 @@ def _merge_options(**options):
     # manage parameters
     params = {}
     for key, value in options.items():
-        if key == "excludes":
+        if key == "wallet":
+            try:
+                base58.b58decode_check(value)
+            except Exception:
+                LOGGER.info(f"{value} is not a valid wallet address")
+            else:
+                params[key] = value
+        elif key == "excludes":
             addresses = []
             for address in [
                 addr.strip() for addr in value.split(",") if addr != ""
@@ -191,22 +198,18 @@ def _merge_options(**options):
                 try:
                     base58.b58decode_check(address)
                 except Exception:
-                    pass
+                    LOGGER.info(f"{address} is not a valid wallet address")
                 else:
                     addresses.append(address)
             params[key] = addresses
-        elif key == "peer":
-            try:
-                value = json.loads(value)
-            except Exception:
-                pass
-            else:
-                params[key] = addresses
         elif key in DELEGATE_PARAMETERS.keys():
             try:
                 params[key] = DELEGATE_PARAMETERS[key](value)
             except Exception:
-                pass
+                LOGGER.info(
+                    f"conversion into {DELEGATE_PARAMETERS[key]} "
+                    f"impossible for {value}"
+                )
     LOGGER.info(f"grabed options: {params}")
     return params
 
@@ -282,6 +285,7 @@ def add_delegate(puk: str, **kwargs) -> None:
 
 def set_delegate(**kwargs) -> requests.Response:
     # update from command line
+    peer = kwargs.pop("peer", {})
     options = _merge_options(**kwargs)
     # asc pincode if no one is given
     if "pincode" not in options:
@@ -291,6 +295,6 @@ def set_delegate(**kwargs) -> requests.Response:
     pincode = [int(e) for e in options.pop("pincode", answer)]
     # secure POST headers and send parameters
     return rest.POST.configure.delegate(
-        peer=options.get("peer", {}), **options,
+        peer=peer, **options,
         headers=secure_headers(rest.POST.headers, pincode)
     )

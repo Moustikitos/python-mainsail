@@ -19,7 +19,14 @@ def delegate(puk: str) -> flask.Response:
 def forgery(puk: str) -> flask.Response:
     path = os.path.join(tbw.DATA, puk, "forgery.json")
     if os.path.exists(path):
-        return flask.jsonify(loadJson(path)), 200
+        forgery = loadJson(path)
+        forgery.pop("reward", False)
+        for k in forgery:
+            if k not in ["blocks", "contributions"]:
+                forgery[k] /= tbw.XTOSHI
+        for k in forgery.get("contributions", {}):
+            forgery["contributions"][k] /= tbw.XTOSHI
+        return flask.jsonify(forgery), 200
     return flask.jsonify({"status": 404}), 404
 
 

@@ -43,7 +43,7 @@ def payroll():
                 if blocks > block_delay:
                     lock = biom.acquireLock()
                     try:
-                        tbw.freeze_forgery(puk)
+                        tbw.freeze_forgery(puk, **info)
                     except Exception:
                         LOGGER.exception("---- error occured>")
                     else:

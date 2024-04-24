@@ -86,7 +86,7 @@ def configure():
         return flask.jsonify({"status": 403}), 403
 
 
-@app.route("/configure/delegate/", methods=["POST", "GET"])
+@app.route("/configure/delegate", methods=["POST", "GET"])
 def configure_delegate() -> flask.Response:
     if biom.check_headers(flask.request.headers):
         puk = flask.request.headers["puk"]
@@ -129,6 +129,11 @@ def block_forged() -> flask.Response:
 
 
 def main():
+    """
+    Server main loop ran as a `threading.Thread` target. It gets block
+    passed by `block_forged` (`/block/forged` endpoint) and update forgery
+    of validator issuing the block.
+    """
     LOGGER.info("entering main loop")
     while True:
         block = JOB.get()

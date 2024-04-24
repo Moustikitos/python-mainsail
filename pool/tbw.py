@@ -44,7 +44,6 @@ def update_forgery(block: dict) -> bool:
     if last_block == {}:
         dumpJson(block, os.path.join(DATA, publicKey, "last.block"))
         return False
-
     blocks = 1
     reward = int(block["reward"])
     fee = int(block["totalFee"])
@@ -118,28 +117,18 @@ def update_forgery(block: dict) -> bool:
     forgery["blocks"] = forgery.get("blocks", 0) + blocks
     forgery["fee"] = forgery.get("fee", 0) + fee
     forgery["contributions"] = new_contributions
-    # compute checksum to determine lost XTOSHI due to roundings
-    checksum = (sum(new_contributions.values()) + forgery["reward"]) / XTOSHI
-    checksum /= max(1, forgery["blocks"])
-    checksum *= XTOSHI
-    lost = float(rest.config.constants["reward"]) - checksum
-    LOGGER.info(f"checksum: {checksum:.3f} -> {lost:.3f} XTOSHI lost")
-    if lost >= len(voters):
-        for voter in forgery["contributions"]:
-            forgery["contributions"][voter] += 1
-        lost -= len(voters)
-        LOGGER.info(
-            f"redistribution of {lost:d} lost XTOSHI to {len(voters)} voters "
-            "done"
-        )
-    forgery["lost"] = round(lost, 3)
+    # compute checksum to determine XTOSHI
+    checksum = (sum(new_contributions.values()) + forgery["reward"])
+    checksum -= int(rest.config.constants["reward"]) * forgery["blocks"]
+    checksum -= forgery.get("undistributed", 0)
+    LOGGER.info(f"losed XTOSHI: {checksum}")
     # update true block weight state
     dumpJson(block, os.path.join(DATA, publicKey, "last.block"))
     dumpJson(forgery, os.path.join(DATA, publicKey, "forgery.json"))
     LOGGER.info(
         f"{shared_reward / XTOSHI} token distributed to {len(voters)} voters "
         f"- {generator_reward / XTOSHI} token plus {fee / XTOSHI} fee added "
-        f"to {identity.get_wallet(publicKey)} share"
+        f"to {info.get('wallet', identity.get_wallet(publicKey))} share"
     )
 
     # 5. PRINT VOTE CHANGES
@@ -159,7 +148,7 @@ def update_forgery(block: dict) -> bool:
 
 
 def freeze_forgery(puk: str, **options) -> None:
-    min_share = options.get("min_share", 1) * XTOSHI
+    min_share = options.get("min_share", 1.0) * XTOSHI
     forgery = loadJson(os.path.join(DATA, puk, "forgery.json"))
     tbw = {
         "timestamp": f"{datetime.datetime.now()}",
@@ -173,13 +162,18 @@ def freeze_forgery(puk: str, **options) -> None:
     dumpJson(
         tbw, os.path.join(DATA, puk, f"{time.strftime('%Y%m%d-%H%M')}.forgery")
     )
-
     forgery.pop("blocks", 0)
     forgery.pop("reward", 0)
     forgery.pop("fee", 0)
-    forgery["contributions"] = dict(
+    contributions = dict(
         [voter, 0 if voter in tbw["voter-shares"] else amount]
         for voter, amount in forgery.get("contributions", {}).items()
+    )
+    forgery["contributions"] = contributions
+    forgery["undistributed"] = sum(contributions.values())
+    LOGGER.info(
+        f"forgery frozen @ {time.strftime('%Y%m%d-%H%M')} - "
+        f"{forgery['undistributed']} XTOSHI undistributed"
     )
     dumpJson(forgery, os.path.join(DATA, puk, "forgery.json"))
 
@@ -196,16 +190,20 @@ def bake_registry(puk: str) -> None:
         wallet = rest.GET.api.wallets(puk)
         nonce = int(wallet.get("nonce", 0)) + 1
         for name in names:
+            LOGGER.info(f"baking registry for {name} frozen forgery...")
             registry = []
             tbw = loadJson(os.path.join(DATA, puk, f"{name}.forgery"))
             share = Transfer(
-                tbw["validator-share"] / XTOSHI, wallet["address"],
-                f"{puk} reward"
+                tbw["validator-share"] / XTOSHI,
+                info.get("wallet", wallet["address"]),
+                f"\U0001f4b3 {wallet.get('username', puk)} reward"
             )
             share.sign(prk, nonce=nonce)
             registry.append(share.serialize())
 
-            message = info.get("message", "Voter share")
+            message = info.get(
+                "message", f"\U0001f4b3 {wallet.get('username', puk)} share"
+            )
             voter_shares = tbw.get("voter-shares", {})
             if len(voter_shares) <= 2:
                 for address, amount in voter_shares.items():
@@ -234,3 +232,4 @@ def bake_registry(puk: str) -> None:
                 pass
             else:
                 os.remove(os.path.join(DATA, puk, f"{name}.forgery"))
+            LOGGER.info(f"{len(registry)} transactions baked")
