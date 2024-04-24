@@ -34,9 +34,6 @@ def update_forgery(block: dict) -> bool:
     max_vote = info.get("max_vote", int(1e6)) * XTOSHI
     share = info.get("share", 1.0)
     peer = info.get("peer", PEER)
-    # Load network.
-    rest.load_network(info["nethash"])
-    # address = identity.get_wallet(publicKey)
 
     # 2. GET FEES AND REWARDS SINCE LAST FORGED BLOCK
     last_block = loadJson(os.path.join(DATA, publicKey, "last.block"))
@@ -44,6 +41,8 @@ def update_forgery(block: dict) -> bool:
     if last_block == {}:
         dumpJson(block, os.path.join(DATA, publicKey, "last.block"))
         return False
+    # Load network.
+    rest.load_network(info["nethash"])
     blocks = 1
     reward = int(block["reward"])
     fee = int(block["totalFee"])

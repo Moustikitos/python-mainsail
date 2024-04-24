@@ -85,6 +85,55 @@ class IdentityError(Exception):
     pass
 
 
+def _merge_options(**options):
+    # update from command line
+    for arg in [a for a in sys.argv if "=" in a]:
+        key, value = arg.split("=")
+        key = key.replace("--", "").replace("-", "_")
+        options[key] = value
+    # manage parameters
+    params = {}
+    for key, value in options.items():
+        if key == "port":
+            try:
+                params[key] = int(value)
+            except Exception:
+                LOGGER.info(
+                    f"conversion into {type(0)} impossible for {value}"
+                )
+        elif key == "wallet":
+            try:
+                base58.b58decode_check(value)
+            except Exception:
+                LOGGER.info(f"{value} is not a valid wallet address")
+            else:
+                params[key] = value
+        elif key == "excludes":
+            addresses = []
+            for address in [
+                addr.strip() for addr in value.split(",") if addr != ""
+            ]:
+                try:
+                    base58.b58decode_check(address)
+                except Exception:
+                    LOGGER.info(f"{address} is not a valid wallet address")
+                else:
+                    addresses.append(address)
+            params[key] = addresses
+        elif key in DELEGATE_PARAMETERS.keys():
+            try:
+                params[key] = DELEGATE_PARAMETERS[key](value)
+            except Exception:
+                LOGGER.info(
+                    f"conversion into {DELEGATE_PARAMETERS[key]} "
+                    f"impossible for {value}"
+                )
+        else:
+            params[key] = value
+    LOGGER.info(f"grabed options: {params}")
+    return params
+
+
 def get_nonces():
     base_time = math.ceil(time.time()/5) * 5
     datetimes = [
@@ -117,13 +166,13 @@ def secure_headers(
 
 def check_headers(headers: dict) -> bool:
     try:
-        path = os.path.join(tbw.DATA, f"{headers['puk']}.json")
+        path = os.path.join(tbw.DATA, f"{headers['puk']}")
         valid_nonces = get_nonces()
         LOGGER.debug(
             f"---- received nonce {headers['nonce']} - "
             f"valid nonces: {'|'.join(valid_nonces)}"
         )
-        if os.path.exists(path) and headers["nonce"] in valid_nonces:
+        if os.path.isdir(path) and headers["nonce"] in valid_nonces:
             return identity.get_signer().verify(
                 headers["puk"], headers["nonce"], headers["sig"]
             )
@@ -145,6 +194,10 @@ def secured_request(
 
 
 def deploy(host: str = "127.0.0.1", port: int = 5000):
+    options = _merge_options()
+    host = options.get("host", host)
+    port = options.get("port", host)
+
     normpath = os.path.normpath
     executable = normpath(sys.executable)
 
@@ -196,56 +249,11 @@ WantedBy=multi-user.target
         os.system("sudo systemctl start mnsl-bg")
 
 
-def _merge_options(**options):
-    # update from command line
-    for arg in [a for a in sys.argv if "=" in a]:
-        key, value = arg.split("=")
-        key = key.replace("--", "").replace("-", "_")
-        options[key] = value
-    # manage parameters
-    params = {}
-    for key, value in options.items():
-        if key == "port":
-            try:
-                params[key] = int(value)
-            except Exception:
-                LOGGER.info(
-                    f"conversion into {type(0)} impossible for {value}"
-                )
-        elif key == "wallet":
-            try:
-                base58.b58decode_check(value)
-            except Exception:
-                LOGGER.info(f"{value} is not a valid wallet address")
-            else:
-                params[key] = value
-        elif key == "excludes":
-            addresses = []
-            for address in [
-                addr.strip() for addr in value.split(",") if addr != ""
-            ]:
-                try:
-                    base58.b58decode_check(address)
-                except Exception:
-                    LOGGER.info(f"{address} is not a valid wallet address")
-                else:
-                    addresses.append(address)
-            params[key] = addresses
-        elif key in DELEGATE_PARAMETERS.keys():
-            try:
-                params[key] = DELEGATE_PARAMETERS[key](value)
-            except Exception:
-                LOGGER.info(
-                    f"conversion into {DELEGATE_PARAMETERS[key]} "
-                    f"impossible for {value}"
-                )
-        else:
-            params[key] = value
-    LOGGER.info(f"grabed options: {params}")
-    return params
-
-
-def add_delegate(puk: str, **kwargs) -> None:
+def add_delegate(puk: str = None, **kwargs) -> None:
+    options = _merge_options()
+    puk = options.get("puk", puk)
+    if puk is None:
+        raise IdentityError("no pulic key provided")
     # check identity
     prk = identity.KeyRing.create(kwargs.pop("prk", None))
     if prk.puk().encode() != puk:
@@ -317,7 +325,7 @@ def add_delegate(puk: str, **kwargs) -> None:
     )
     # dump delegate options
     path = os.path.join(tbw.DATA, f"{puk}.json")
-    dumpJson(dict(options, **loadJson(path)), path, ensure_ascii=False)
+    dumpJson(dict(loadJson(path), **options), path, ensure_ascii=False)
     os.makedirs(os.path.join(tbw.DATA, puk), exist_ok=True)
     LOGGER.info(f"delegate {puk} set")
 
