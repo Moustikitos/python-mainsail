@@ -12,7 +12,7 @@ def delegate(puk: str) -> flask.Response:
     if len(info):
         info.pop("prk", False)
         return flask.jsonify(info), 200
-    return flask.jsonify({"status": 404}), 404
+    return flask.jsonify({"status": 404}), 200
 
 
 @app.route("/<string:puk>/forgery", methods=["GET"])
@@ -27,7 +27,7 @@ def forgery(puk: str) -> flask.Response:
         for k in forgery.get("contributions", {}):
             forgery["contributions"][k] /= tbw.XTOSHI
         return flask.jsonify(forgery), 200
-    return flask.jsonify({"status": 404}), 404
+    return flask.jsonify({"status": 404}), 200
 
 
 def run(debug: bool = True) -> flask.Flask:

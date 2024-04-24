@@ -81,12 +81,12 @@ def configure():
                 )
             )
             dumpJson(conf, path, ensure_ascii=False)
-            return flask.jsonify({"status": 204}), 204
+            return flask.jsonify({"status": 204}), 200
     else:
-        return flask.jsonify({"status": 403}), 403
+        return flask.jsonify({"status": 403}), 200
 
 
-@app.route("/configure/delegate", methods=["POST", "GET"])
+@app.route("/configure/delegate", methods=["POST"])
 def configure_delegate() -> flask.Response:
     if biom.check_headers(flask.request.headers):
         puk = flask.request.headers["puk"]
@@ -102,12 +102,9 @@ def configure_delegate() -> flask.Response:
             LOGGER.debug(f"---- received> {data}")
             LOGGER.info(f"updating {puk} info> {info}")
             dumpJson(info, path, ensure_ascii=False)
-            return flask.jsonify({"status": 204, "updated": data}), 204
-        else:
-            info.pop("prk", None)
-            return flask.jsonify(info), 200
+            return flask.jsonify({"status": 204, "updated": data}), 200
     else:
-        return flask.jsonify({"status": 403}), 403
+        return flask.jsonify({"status": 403}), 200
 
 
 @app.route("/block/forged", methods=["POST", "GET"])
@@ -125,7 +122,7 @@ def block_forged() -> flask.Response:
             JOB.put(block)
         else:
             check = False
-    return flask.jsonify({"acknowledge": check}), 200 if check else 403
+    return flask.jsonify({"acknowledge": check}), 200
 
 
 def main():
