@@ -84,6 +84,11 @@ class KeyRing(cSecp256k1.KeyRing):
     ```
     """
 
+    @staticmethod
+    def path(pin: Union[bytes, List[int]]) -> str:
+        code = binascii.hexlify(bytes(pin))
+        return _encryption_file_path(code.decode("utf-8"))
+
     def dump(self, pin: Union[bytes, List[int]]) -> None:
         """
         Securely dump `KeyRing` into filesystem using pin code. Override
