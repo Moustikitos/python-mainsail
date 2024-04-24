@@ -6,7 +6,6 @@ transaction and interact with the blockchain API.
 ```python
 >>> from mainsail.tx.v1 import Transfer
 >>> from mainsail import rest
->>> rest.use_network("http://49.13.30.19:4003")
 >>> # http://xxx.xxx.xxx.xxx:4006/api/wallets/toons
 >>> wallet = rest.GET.api.wallets.toons()
 >>> wallet["address"]
@@ -25,6 +24,61 @@ Type or paste your passphrase >
 {'data': {'accept': [0], 'broadcast': [0], 'excess': [], 'invalid': []}}
 ```
 
+## Validator pool managment tool
+
+Install and deploy server:
+
+```bash
+~$ wget https://raw.githubusercontent.com/Moustikitos/python-mainsail/master/mnsl-pool.sh
+~$ bash mnsl-pool.sh
+~$ mnsl_pool_deploy
+```
+
+Add delegate:
+
+```bash
+~$ add_validator 02968e862011738ac185e87f47dec61b32c842fd8e24fab625c02a15ad7e2d0f65
+Type or paste your passphrase>
+enter pin code to secure secret>
+provide a valid network peer> http://127.0.0.1:4003
+provide a valid webhook peer> http://127.0.0.1:4004
+provide a valid target endpoint> http://127.0.0.1:5000/block/forged
+```
+
+Check the logs:
+
+```bash
+~$ log_mnsl_pool
+~$ log_mnsl_bg
+```
+
+## [RIPEMD160 issue with OpenSSL v>=3](https://github.com/openssl/openssl/issues/16994) on ubuntu
+
+Get the installation folder:
+
+```bash
+openssl version -d
+```
+
+Make sure that the openssl config file contains following lines:
+
+```conf
+openssl_conf = openssl_init
+
+[openssl_init]
+providers = provider_sect
+
+[provider_sect]
+default = default_sect
+legacy = legacy_sect
+
+[default_sect]
+activate = 1
+
+[legacy_sect]
+activate = 1
+```
+
 ## Available transactions
 
 * [x] Transfer
@@ -38,6 +92,7 @@ Type or paste your passphrase >
 
 ## Features
 
+* [x] pool managment tools
 * [x] secured private keys storage
 * [x] secured webhook subscriptions storage
 * [x] offline network configuration available

@@ -1,5 +1,5 @@
-requests
-base58
-pyaes
-blspy
-cSecp256k1
+requests==2.31.0
+base58==2.1.1
+pyaes==1.6.1
+blspy==2.0.3
+cSecp256k1==1.1.2

@@ -34,8 +34,12 @@ renderer:
       - mainsail.identity.*
     - title: Transactions
       contents:
+      - mainsail.transaction.*
       - mainsail.tx.deserialize
-      - mainsail.tx.v1.*
+      - mainsail.tx.v1.Transfer
+    - title: Pool
+      contents:
+      - pool
 
   mkdocs_config:
     site_name: Python mainsail project

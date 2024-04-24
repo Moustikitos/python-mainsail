@@ -183,7 +183,14 @@ def _merge_options(**options):
     # manage parameters
     params = {}
     for key, value in options.items():
-        if key == "wallet":
+        if key == "port":
+            try:
+                params[key] = int(value)
+            except Exception:
+                LOGGER.info(
+                    f"conversion into {type(0)} impossible for {value}"
+                )
+        elif key == "wallet":
             try:
                 base58.b58decode_check(value)
             except Exception:
@@ -210,25 +217,33 @@ def _merge_options(**options):
                     f"conversion into {DELEGATE_PARAMETERS[key]} "
                     f"impossible for {value}"
                 )
+        else:
+            params[key] = value
     LOGGER.info(f"grabed options: {params}")
     return params
 
 
 def add_delegate(puk: str, **kwargs) -> None:
     # check identity
-    prk = identity.KeyRing.create()
+    prk = identity.KeyRing.create(kwargs.pop("prk", None))
     if prk.puk().encode() != puk:
         raise IdentityError(f"private key does not match public key {puk}")
-    # save private key
+    # secure private key using a pincode
+    # it will give the possibility to mnsl-bg service to sign transactions
     answer = ""
     while re.match(r"^[0-9]+$", answer) is None:
-        answer = getpass.getpass("enter pin code to secure secret> ")
+        answer = getpass.getpass(
+            "enter pin code to secure secret (only figures)> "
+        )
     pincode = [int(e) for e in answer]
     prk.dump(pincode)
     # reach a network
     while not hasattr(rest.config, "nethash"):
         try:
-            rest.use_network(input("provide a valid network peer> "))
+            rest.use_network(
+                input("provide a network peer API [default=localhost:4003]> ")
+                or "http://127.0.0.1:4003"
+            )
         except KeyboardInterrupt:
             print("\n")
             break
@@ -238,8 +253,9 @@ def add_delegate(puk: str, **kwargs) -> None:
     # reach a valid subscription node
     webhook_peer = None
     while webhook_peer is None:
-        webhook_peer = input("provide a valid webhook peer> ") \
-            or "http://127.0.0.1:4004"
+        webhook_peer = input(
+            "provide your webhook peer [default=localhost:4004]> "
+        ) or "http://127.0.0.1:4004"
         try:
             resp = requests.head(f"{webhook_peer}/api/webhooks", timeout=2)
             if resp.status_code != 200:
@@ -253,8 +269,9 @@ def add_delegate(puk: str, **kwargs) -> None:
     # reach a valid target endpoint
     target_endpoint = None
     while target_endpoint is None:
-        target_endpoint = input("provide a valid target server> ") \
-            or "http://127.0.0.1:5000"
+        target_endpoint = input(
+            "provide your target server [default=localhost:5000]> "
+        ) or "http://127.0.0.1:5000"
         try:
             resp = requests.post(f"{target_endpoint}/block/forged", timeout=2)
             if resp.status_code not in [200, 403]:
@@ -287,12 +304,16 @@ def set_delegate(**kwargs) -> requests.Response:
     # update from command line
     peer = kwargs.pop("peer", {})
     options = _merge_options(**kwargs)
-    # asc pincode if no one is given
+    # build peer if not found in kwargs
+    if peer == {}:
+        peer["ip"] = options.get("ip", "127.0.0.1")
+        peer["ports"] = {"requests": options.get("port", 5000)}
+    # ask pincode if no one is given
+    answer = options.pop("pincode", "")
     if "pincode" not in options:
-        answer = ""
         while re.match(r"^[0-9]+$", answer) is None:
-            answer = getpass.getpass("enter validator secret pincode> ")
-    pincode = [int(e) for e in options.pop("pincode", answer)]
+            answer = getpass.getpass("enter validator security pincode> ")
+    pincode = [int(e) for e in answer]
     # secure POST headers and send parameters
     return rest.POST.configure.delegate(
         peer=peer, **options,

@@ -29,15 +29,15 @@ Type or paste your passphrase >
 Install and deploy server:
 
 ```bash
-~$ wget https://raw.githubusercontent.com/Moustikitos/python-mainsail/master/pool-install.sh
-~$ bash pool-install.sh
+~$ wget https://raw.githubusercontent.com/Moustikitos/python-mainsail/master/mnsl-pool.sh
+~$ bash mnsl-pool.sh
 ~$ mnsl_pool_deploy
 ```
 
 Add delegate:
 
 ```bash
-~$ add_delegate 02968e862011738ac185e87f47dec61b32c842fd8e24fab625c02a15ad7e2d0f65
+~$ add_validator 02968e862011738ac185e87f47dec61b32c842fd8e24fab625c02a15ad7e2d0f65
 Type or paste your passphrase>
 enter pin code to secure secret>
 provide a valid network peer> http://127.0.0.1:4003
@@ -92,7 +92,7 @@ activate = 1
 
 ## Features
 
-* [x] pool managment tools
+* [x] pool server with remote managment tool
 * [x] secured private keys storage
 * [x] secured webhook subscriptions storage
 * [x] offline network configuration available
