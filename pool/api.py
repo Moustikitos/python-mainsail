@@ -11,8 +11,8 @@ def delegate(puk: str) -> flask.Response:
     info = loadJson(os.path.join(tbw.DATA, f"{puk}.json"))
     if len(info):
         info.pop("prk", False)
-        return flask.jsonify(info), 200
-    return flask.jsonify({"status": 404}), 200
+        return flask.jsonify(info)
+    return flask.jsonify({"status": 404})
 
 
 @app.route("/<string:puk>/forgery", methods=["GET"])
@@ -26,8 +26,8 @@ def forgery(puk: str) -> flask.Response:
                 forgery[k] /= tbw.XTOSHI
         for k in forgery.get("contributions", {}):
             forgery["contributions"][k] /= tbw.XTOSHI
-        return flask.jsonify(forgery), 200
-    return flask.jsonify({"status": 404}), 200
+        return flask.jsonify(forgery)
+    return flask.jsonify({"status": 404})
 
 
 def run(debug: bool = True) -> flask.Flask:

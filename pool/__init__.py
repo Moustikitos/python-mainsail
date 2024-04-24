@@ -102,9 +102,9 @@ def configure_delegate() -> flask.Response:
             LOGGER.debug(f"---- received> {data}")
             LOGGER.info(f"updating {puk} info> {info}")
             dumpJson(info, path, ensure_ascii=False)
-            return flask.jsonify({"status": 204, "updated": data}), 200
+            return flask.jsonify({"status": 204, "updated": data})
     else:
-        return flask.jsonify({"status": 403}), 200
+        return flask.jsonify({"status": 403})
 
 
 @app.route("/block/forged", methods=["POST", "GET"])
@@ -122,7 +122,7 @@ def block_forged() -> flask.Response:
             JOB.put(block)
         else:
             check = False
-    return flask.jsonify({"acknowledge": check}), 200
+    return flask.jsonify({"acknowledge": check})
 
 
 def main():
