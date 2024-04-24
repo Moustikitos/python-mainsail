@@ -4,11 +4,15 @@ import io
 import os
 import re
 import sys
+import math
+import time
 import base58
 import getpass
 import logging
+import datetime
 import requests
 
+from datetime import timezone
 from urllib import parse
 from pool import tbw
 from mainsail import identity, rest, webhook, dumpJson, loadJson
@@ -17,7 +21,7 @@ from typing import Union, List
 # set basic logging
 logging.basicConfig()
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
+LOGGER.setLevel(logging.DEBUG)
 
 DELEGATE_PARAMETERS = {
     "share": float,
@@ -81,6 +85,19 @@ class IdentityError(Exception):
     pass
 
 
+def get_nonces():
+    base_time = math.ceil(time.time()/5) * 5
+    datetimes = [
+        datetime.datetime.fromtimestamp(base_time + n)
+        .astimezone(timezone.utc).strftime("%Y-%m-%H%m%S").encode("utf-8")
+        for n in [-5, 0]
+    ]
+    return [
+        identity.cSecp256k1.hash_sha256(dt).decode("utf-8")
+        for dt in datetimes
+    ]
+
+
 def secure_headers(
     headers: dict = {},
     prk: Union[identity.KeyRing, List[int], str, int] = None
@@ -89,7 +106,7 @@ def secure_headers(
         prk = identity.KeyRing.load(prk)
     elif not isinstance(prk, identity.KeyRing):
         prk = identity.KeyRing.create(prk)
-    nonce = os.urandom(64).hex()
+    nonce = get_nonces()[-1]
     headers.update(
         nonce=nonce,
         sig=prk.sign(nonce).raw(),
@@ -101,7 +118,12 @@ def secure_headers(
 def check_headers(headers: dict) -> bool:
     try:
         path = os.path.join(tbw.DATA, f"{headers['puk']}.json")
-        if os.path.exists(path):
+        valid_nonces = get_nonces()
+        LOGGER.debug(
+            f"---- received nonce {headers['nonce']} - "
+            f"valid nonces: {'|'.join(valid_nonces)}"
+        )
+        if os.path.exists(path) and headers["nonce"] in valid_nonces:
             return identity.get_signer().verify(
                 headers["puk"], headers["nonce"], headers["sig"]
             )
@@ -301,19 +323,23 @@ def add_delegate(puk: str, **kwargs) -> None:
 
 
 def set_delegate(**kwargs) -> requests.Response:
-    # update from command line
+    # `peer` is just to be used inside this function so we pop it from kwargs
+    # if # found there
     peer = kwargs.pop("peer", {})
+    # merge kwargs with command line
     options = _merge_options(**kwargs)
-    # build peer if not found in kwargs
+    # because `ip` and `port` of remote pool can be set using command line args
+    # we pop them from here
     if peer == {}:
-        peer["ip"] = options.get("ip", "127.0.0.1")
-        peer["ports"] = {"requests": options.get("port", 5000)}
+        peer["ip"] = options.pop("ip", "127.0.0.1")
+        peer["ports"] = {"requests": options.pop("port", 5000)}
     # ask pincode if no one is given
     answer = options.pop("pincode", "")
     if "pincode" not in options:
         while re.match(r"^[0-9]+$", answer) is None:
             answer = getpass.getpass("enter validator security pincode> ")
     pincode = [int(e) for e in answer]
+    # only valid delegate parameters available in `options` from there
     # secure POST headers and send parameters
     return rest.POST.configure.delegate(
         peer=peer, **options,
