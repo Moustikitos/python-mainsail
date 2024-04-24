@@ -131,7 +131,10 @@ def verify(authorization: str) -> bool:
 
 
 def list() -> list:
-    return [name for name in next(os.walk(DATA))[-1] if name.endswith(".json")]
+    return [
+        name.split(".")[0] for name in next(os.walk(DATA))[-1]
+        if name.endswith(".json")
+    ]
 
 
 def open(whk_id: str) -> dict:
