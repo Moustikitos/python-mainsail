@@ -7,7 +7,7 @@ with open("README.md") as f2:
     LONG_DESCRIPTION = f2.read()
 
 kw = {
-    "version": "1.1.2",
+    "version": "1.1.3",
     "name": "ark-mainsail",
     "keywords": ["api", "ark", "blockchain"],
     "author": "Toons",
@@ -39,7 +39,12 @@ kw = {
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
     ],
-    "package_dir": {"": "."}
+    "package_dir": {"": "."},
+    "entry_points": {
+        'console_scripts': [
+            'set_validator = pool.biom:set_delegate'
+        ]
+    }
 }
 
 setup(**kw)
