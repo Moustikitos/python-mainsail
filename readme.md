@@ -93,6 +93,7 @@ activate = 1
 ## Features
 
 * [x] pool server with remote managment tool
+* [x] `cmd` command line `set_validator` for windows platformd
 * [x] secured private keys storage
 * [x] secured webhook subscriptions storage
 * [x] offline network configuration available
