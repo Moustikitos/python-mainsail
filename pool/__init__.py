@@ -14,15 +14,14 @@ bash mnsl-pool.sh
 
 Setup script creates 7 commands into `~/.bash_aliases` file:
 
-* [x] `mnsl_pool_deploy` takes broadcast ip address and port to create
+* [x] `mnsl_deploy` takes broadcast ip address and port to create
   services managed by `systemd`.
 * [x] `add_validator` takes a validator public key to configure listening
   subscription on blockchain.
 * [x] `set_validator` modifies validator TBW service parameters.
-* [x] `mnsl_venv_activate` activates the virtual environment used to run
+* [x] `mnsl_venv` activates the virtual environment used to run
   mainsail pool.
-* [x] `restart_mnsl_pool` restarts the server.
-* [x] `restart_mnsl_bg` restarts background tasks.
+* [x] `mnsl_restart` restarts pool tasks.
 * [x] `log_mnsl_pool` shows server logs.
 * [x] `log_mnsl_bg` shows background tasks logs.
 """
@@ -92,6 +91,10 @@ def configure_delegate() -> flask.Response:
         puk = flask.request.headers["puk"]
         path = os.path.join(tbw.DATA, f"{puk}.json")
         data = json.loads(flask.request.data)
+        # BUGFIX: when used directly on server where pool is runing, the
+        # headers seem to be copied into request data...
+        data.pop("headers", False)
+        ##########################
         info = dict(
             loadJson(path), **dict(
                 [k, v] for k, v in data.items()

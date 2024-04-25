@@ -26,23 +26,30 @@ Type or paste your passphrase >
 
 ## Validator pool managment tool
 
-Install and deploy server:
+### Ubuntu installation
 
 ```bash
-~$ wget https://raw.githubusercontent.com/Moustikitos/python-mainsail/master/mnsl-pool.sh
+~$ wget https://bit.ly/3U6BI8v
 ~$ bash mnsl-pool.sh
-~$ mnsl_pool_deploy
 ```
 
-Add delegate:
+### Deploy pool server
 
 ```bash
-~$ add_validator 02968e862011738ac185e87f47dec61b32c842fd8e24fab625c02a15ad7e2d0f65
-Type or paste your passphrase>
-enter pin code to secure secret>
-provide a valid network peer> http://127.0.0.1:4003
-provide a valid webhook peer> http://127.0.0.1:4004
-provide a valid target endpoint> http://127.0.0.1:5000/block/forged
+~$ mnsl_deploy # use ip address 0.0.0.0 with  port #5000
+```
+
+If you plan to deploy pool server behind a proxy, it is possible to customize
+`ip` and `port`:
+
+```bash
+~$ mnsl_deploy host=127.0.0.1 port=7542 # use localhost address with port #7542
+```
+
+Add delegate using its public key:
+
+```bash
+~$ add_validator puk=02968e862011738ac185e87f47dec61b32c842fd8e24fab625c02a15ad7e2d0f65
 ```
 
 Check the logs:
@@ -52,15 +59,17 @@ Check the logs:
 ~$ log_mnsl_bg
 ```
 
-## [RIPEMD160 issue with OpenSSL v>=3](https://github.com/openssl/openssl/issues/16994) on ubuntu
+## Linux distributions
 
-Get the installation folder:
+Due to [RIPEMD160 issue with OpenSSL v>=3](https://github.com/openssl/openssl/issues/16994)
+`hashlib.ripemd160` is disabled within `python3`. To enable it back, get the
+installation folder...
 
 ```bash
 openssl version -d
 ```
 
-Make sure that the openssl config file contains following lines:
+... and make sure that the openssl config file contains following lines:
 
 ```conf
 openssl_conf = openssl_init
