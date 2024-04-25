@@ -26,7 +26,13 @@ kw = {
     "description": "Interact with ARK blockchain and forks",
     "long_description": LONG_DESCRIPTION,
     "long_description_content_type": "text/markdown",
-    "install_requires": ["requests", "base58", "pyaes", "blspy", "cSecp256k1"],
+    "install_requires": [
+        "requests==2.31.0",
+        "base58==2.1.1",
+        "pyaes==1.6.1",
+        "blspy==2.0.3",
+        "cSecp256k1==1.1.2"
+    ],
     "license": "Copyright 2024, MIT licence",
     "classifiers": [
         "Development Status :: 5 - Production/Stable",
@@ -44,7 +50,8 @@ kw = {
         'console_scripts': [
             'set_validator = pool.biom:set_delegate'
         ]
-    }
+    },
+    "zip-safe": True
 }
 
 setup(**kw)
