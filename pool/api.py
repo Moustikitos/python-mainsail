@@ -7,7 +7,7 @@ from pool import tbw, flask, loadJson, main, app, JOB
 
 
 @app.route("/<string:puk>", methods=["GET"])
-def delegate(puk: str) -> flask.Response:
+def validator(puk: str) -> flask.Response:
     info = loadJson(os.path.join(tbw.DATA, f"{puk}.json"))
     if len(info):
         info.pop("prk", False)

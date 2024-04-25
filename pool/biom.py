@@ -249,7 +249,7 @@ WantedBy=multi-user.target
         os.system("sudo systemctl start mnsl-bg")
 
 
-def add_delegate(puk: str = None, **kwargs) -> None:
+def add_pool(puk: str = None, **kwargs) -> None:
     options = _merge_options()
     puk = options.get("puk", puk)
     if puk is None:
@@ -330,7 +330,7 @@ def add_delegate(puk: str = None, **kwargs) -> None:
     LOGGER.info(f"delegate {puk} set")
 
 
-def set_delegate(**kwargs) -> requests.Response:
+def set_pool(**kwargs) -> requests.Response:
     # `peer` is just to be used inside this function so we pop it from kwargs
     # if # found there
     peer = kwargs.pop("peer", {})
@@ -349,7 +349,7 @@ def set_delegate(**kwargs) -> requests.Response:
     pincode = [int(e) for e in answer]
     # only valid delegate parameters available in `options` from there
     # secure POST headers and send parameters
-    return rest.POST.configure.delegate(
+    return rest.POST.pool.configure(
         peer=peer, **options,
         headers=secure_headers(rest.POST.headers, pincode)
     )

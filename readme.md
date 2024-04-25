@@ -1,7 +1,7 @@
 # python-mainsail
 
-This package aims to provide a simple implementation to bake offline `Ark`
-transaction and interact with the blockchain API.
+This package provides a simple implementation to interact with `Ark` blockchain
+API and managment tools for validators aiming to run a pool.
 
 ```python
 >>> from mainsail.tx.v1 import Transfer
@@ -22,41 +22,6 @@ transaction and interact with the blockchain API.
 Type or paste your passphrase >
 >>> t.send()
 {'data': {'accept': [0], 'broadcast': [0], 'excess': [], 'invalid': []}}
-```
-
-## Validator pool managment tool
-
-### Ubuntu installation
-
-```bash
-~$ wget https://bit.ly/3U6BI8v
-~$ bash mnsl-pool.sh
-```
-
-### Deploy pool server
-
-```bash
-~$ mnsl_deploy # use ip address 0.0.0.0 with  port #5000
-```
-
-If you plan to deploy pool server behind a proxy, it is possible to customize
-`ip` and `port`:
-
-```bash
-~$ mnsl_deploy host=127.0.0.1 port=7542 # use localhost address with port #7542
-```
-
-Add delegate using its public key:
-
-```bash
-~$ add_validator puk=02968e862011738ac185e87f47dec61b32c842fd8e24fab625c02a15ad7e2d0f65
-```
-
-Check the logs:
-
-```bash
-~$ log_mnsl_pool
-~$ log_mnsl_bg
 ```
 
 ## Linux distributions
@@ -86,6 +51,47 @@ activate = 1
 
 [legacy_sect]
 activate = 1
+```
+
+## Validator pool managment tools
+
+### Ubuntu installation
+
+```bash
+~$ wget https://bit.ly/3U6BI8v
+~$ bash mnsl-pool.sh
+```
+
+### Deploy pool server
+
+```bash
+~$ mnsl_deploy # use ip address 0.0.0.0 with  port #5000
+```
+
+If you plan to deploy pool server behind a proxy, it is possible to customize
+`ip` and `port`:
+
+```bash
+~$ mnsl_deploy host=127.0.0.1 port=7542 # use localhost address with port #7542
+```
+
+Setup a pool using validator public key:
+
+```bash
+~$ add_pool puk=02968e862011738ac185e87f47dec61b32c842fd8e24fab625c02a15ad7e2d0f65
+```
+
+Configure pool options:
+
+```bash
+~$ set_pool ?key=value?
+```
+
+Check the logs:
+
+```bash
+~$ log_mnsl_pool
+~$ log_mnsl_bg
 ```
 
 ## Available transactions

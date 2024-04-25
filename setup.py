@@ -23,7 +23,7 @@ kw = {
         "Source": "https://github.com/Moustikitos/python-mainsail/",
     },
     "include_package_data": False,
-    "description": "Interact with ARK blockchain and forks",
+    "description": "Interact with ARK blockchain trough mainsail framework",
     "long_description": LONG_DESCRIPTION,
     "long_description_content_type": "text/markdown",
     "install_requires": [
@@ -48,7 +48,7 @@ kw = {
     "package_dir": {"": "."},
     "entry_points": {
         'console_scripts': [
-            'set_validator = pool.biom:set_delegate'
+            'set_pool = pool.biom:set_pool'
         ]
     },
     "zip-safe": True

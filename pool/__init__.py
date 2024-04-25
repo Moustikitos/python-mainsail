@@ -16,9 +16,9 @@ Setup script creates 7 commands into `~/.bash_aliases` file:
 
 * [x] `mnsl_deploy` takes broadcast ip address and port to create
   services managed by `systemd`.
-* [x] `add_validator` takes a validator public key to configure listening
+* [x] `add_pool` takes a validator public key to configure listening
   subscription on blockchain.
-* [x] `set_validator` modifies validator TBW service parameters.
+* [x] `set_pool` modifies validator TBW pool service parameters.
 * [x] `mnsl_venv` activates the virtual environment used to run
   mainsail pool.
 * [x] `mnsl_restart` restarts pool tasks.
@@ -85,8 +85,14 @@ def configure():
         return flask.jsonify({"status": 403}), 200
 
 
-@app.route("/configure/delegate", methods=["POST"])
-def configure_delegate() -> flask.Response:
+@app.route("/pool/configure", methods=["POST"])
+def pool_configure() -> flask.Response:
+    """
+    Flask endpoint to configure validator pool parameters. Requests are secured
+    using validator signature on UTC-time-based nonce. Available parameters are
+    set in `pool.biom:DELEGATE_PARAMETERS` dict.
+    """
+
     if biom.check_headers(flask.request.headers):
         puk = flask.request.headers["puk"]
         path = os.path.join(tbw.DATA, f"{puk}.json")
