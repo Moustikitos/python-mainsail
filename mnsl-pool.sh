@@ -85,8 +85,8 @@ if [ ! -f ~/.bash_aliases ]; then
     touch ~/.bash_aliases
     echo "alias mnsl_venv=\". ~/.local/share/mnsl-pool/venv/bin/activate\"" > ~/.bash_aliases
     echo "function mnsl_deploy() { cwd=\$(pwd) && mnsl_venv && cd ~/python-mainsail && python -c \"from pool import biom;biom.deploy())\" \$@; deactivate ; cd \$cwd ; }" >> ~/.bash_aliases
-    echo "function add_validator() { cwd=\$(pwd) && mnsl_venv && cd ~/python-mainsail && python -c \"from pool import biom;biom.add_delegate()\" \$@; deactivate ; cd \$cwd ; }" >> ~/.bash_aliases
-    echo "function set_validator() { cwd=\$(pwd) && mnsl_venv && cd ~/python-mainsail && python -c \"from pool import biom;print(biom.set_delegate())\" \$@ ; deactivate ; cd \$cwd ; }" >> ~/.bash_aliases
+    echo "function add_pool() { cwd=\$(pwd) && mnsl_venv && cd ~/python-mainsail && python -c \"from pool import biom;biom.add_pool()\" \$@; deactivate ; cd \$cwd ; }" >> ~/.bash_aliases
+    echo "function set_pool() { cwd=\$(pwd) && mnsl_venv && cd ~/python-mainsail && python -c \"from pool import biom;print(biom.set_pool())\" \$@ ; deactivate ; cd \$cwd ; }" >> ~/.bash_aliases
     echo "alias mnsl_restart=\"sudo systemctl restart mnsl-pool.service && sudo systemctl restart mnsl-bg.service\"" >> ~/.bash_aliases
     echo "alias log_mnsl_pool=\"journalctl -u mnsl-pool.service -ef\"" >> ~/.bash_aliases
     echo "alias log_mnsl_bg=\"journalctl -u mnsl-bg.service -ef\"" >> ~/.bash_aliases
