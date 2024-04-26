@@ -7,7 +7,7 @@ import binascii
 import threading
 
 from mainsail import rest, identity
-from pool import tbw, biom, loadJson, dumpJson, LOGGER
+from mnsl_pool import tbw, biom, loadJson, dumpJson, LOGGER
 
 TASK = queue.Queue()
 SLEEP = threading.Event()

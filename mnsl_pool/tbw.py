@@ -94,7 +94,7 @@ def update_forgery(block: dict) -> bool:
         page += 1  # -> go to next API page
     # filter all voters using minimum and maximum votes
     voters = dict(
-        [a, b] for a, b in voters.items() if b >= min_vote and b <= max_vote
+        [a, min(max_vote, b)] for a, b in voters.items() if b >= min_vote
     )
     LOGGER.debug(f"---- found {len(voters)} valid voters")
     # compute vote weight amongs fltered voters

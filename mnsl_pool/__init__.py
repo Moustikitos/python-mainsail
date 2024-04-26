@@ -33,7 +33,7 @@ import flask
 import logging
 
 from mainsail import webhook, loadJson, dumpJson
-from pool import tbw, biom
+from mnsl_pool import tbw, biom
 
 # set basic logging
 logging.basicConfig()
@@ -91,6 +91,8 @@ def pool_configure() -> flask.Response:
     Flask endpoint to configure validator pool parameters. Requests are secured
     using validator signature on UTC-time-based nonce. Available parameters are
     set in `pool.biom:DELEGATE_PARAMETERS` dict.
+
+    This end point is used by `set_pool` command.
     """
 
     if biom.check_headers(flask.request.headers):

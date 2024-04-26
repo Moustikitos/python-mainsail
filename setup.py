@@ -7,7 +7,7 @@ with open("README.md") as f2:
     LONG_DESCRIPTION = f2.read()
 
 kw = {
-    "version": "1.1.3",
+    "version": "1.2.0",
     "name": "ark-mainsail",
     "keywords": ["api", "ark", "blockchain"],
     "author": "Toons",
@@ -45,10 +45,16 @@ kw = {
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
     ],
-    "package_dir": {"": "."},
+    "packages": [
+        "mainsail", "mainsail.tx", "mnsl_pool"
+    ],
+    "package_dir": {
+        "mainsail": "./mainsail",
+        "mnsl_pool": "./mnsl_pool"
+    },
     "entry_points": {
         'console_scripts': [
-            'set_pool = pool.biom:set_pool'
+            'set_pool = mnsl_pool.biom:set_pool'
         ]
     },
     "zip-safe": True

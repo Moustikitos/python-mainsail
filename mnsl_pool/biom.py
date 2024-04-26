@@ -14,7 +14,7 @@ import requests
 
 from datetime import timezone
 from urllib import parse
-from pool import tbw
+from mnsl_pool import tbw
 from mainsail import identity, rest, webhook, dumpJson, loadJson
 from typing import Union, List
 
@@ -201,7 +201,7 @@ def deploy(host: str = "127.0.0.1", port: int = 5000):
     normpath = os.path.normpath
     executable = normpath(sys.executable)
 
-    with io.open("./mnsl-pool.service", "w") as unit:
+    with io.open("./mnsl-srv.service", "w") as unit:
         unit.write(f"""[Unit]
 Description=Mainsail TBW server
 After=network.target
@@ -237,9 +237,9 @@ WantedBy=multi-user.target
     if os.system(f"{executable} -m pip show gunicorn") != "0":
         os.system(f"{executable} -m pip install gunicorn")
 
-    os.system("chmod +x ./mnsl-pool.service")
+    os.system("chmod +x ./mnsl-srv.service")
     os.system("chmod +x ./mnsl-bg.service")
-    os.system("sudo mv --force ./mnsl-pool.service /etc/systemd/system")
+    os.system("sudo mv --force ./mnsl-srv.service /etc/systemd/system")
     os.system("sudo mv --force ./mnsl-bg.service /etc/systemd/system")
 
     os.system("sudo systemctl daemon-reload")
@@ -249,9 +249,9 @@ WantedBy=multi-user.target
         os.system("sudo systemctl start mnsl-bg")
 
 
-def add_pool(puk: str = None, **kwargs) -> None:
+def add_pool(**kwargs) -> None:
     options = _merge_options()
-    puk = options.get("puk", puk)
+    puk = options.get("puk", None)
     if puk is None:
         raise IdentityError("no pulic key provided")
     # check identity
@@ -280,6 +280,7 @@ def add_pool(puk: str = None, **kwargs) -> None:
         except Exception as error:
             LOGGER.info("%r", error)
             pass
+    options["username"] = rest.GET.api.wallets(puk).get("username", None)
     # reach a valid subscription node
     webhook_peer = None
     while webhook_peer is None:
@@ -331,6 +332,24 @@ def add_pool(puk: str = None, **kwargs) -> None:
 
 
 def set_pool(**kwargs) -> requests.Response:
+    """
+    ```bash
+    $ set_pool ?key=value?
+    ```
+
+    *Pool parameters:*
+
+    - [x] `share` - share rate in float number (0. <= share = 1.0).
+    - [x] `min_vote` - minimum vote to be considered by the pool.
+    - [x] `max_vote` - maximum vote weight caped in the pool.
+    - [x] `min_share` - minimum reward to reach for a vote wallet to be
+          included in payroll.
+    - [x] `excludes` - comma-separated list of wallet to exclude.
+    - [x] `block_delay` - number of forged block between two payrolls.
+    - [x] `message` - vendorFied message to be set on each payroll transacion.
+    - [x] `chunck_size` - maximum number of recipient for a multipayment.
+    - [x] `wallet` - custom wallet to receive validator share.
+    """
     # `peer` is just to be used inside this function so we pop it from kwargs
     # if # found there
     peer = kwargs.pop("peer", {})
