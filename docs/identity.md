@@ -1,6 +1,6 @@
 <a id="mainsail.identity"></a>
 
-# Module mainsail.identity
+# mainsail.identity
 
 This modules provides cryptographic primitives to interact with blockchain.
 

@@ -1,6 +1,6 @@
 <a id="mainsail.transaction"></a>
 
-# Module mainsail.transaction
+# mainsail.transaction
 
 <a id="mainsail.transaction.SKIP_SIG1"></a>
 
@@ -67,9 +67,25 @@ Serialize the transaction.
 
 - `str` - the serialized transaction as hexadecimal string.
 
+<a id="mainsail.tx.v1"></a>
+
+# mainsail.tx.v1
+
+This module provides v1 transaction builders.
+
+<a id="mainsail.tx.v1.Transfer"></a>
+
+## Transfer Objects
+
+```python
+class Transfer(Transaction)
+```
+
+TODO: write doc
+
 <a id="mainsail.tx"></a>
 
-# Module mainsail.tx
+# mainsail.tx
 
 <a id="mainsail.tx.deserialize"></a>
 

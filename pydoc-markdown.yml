@@ -23,7 +23,7 @@ renderer:
     add_module_prefix: true
     add_method_class_prefix: true
     add_member_class_prefix: true
-    descriptive_module_title: true
+    descriptive_module_title: false
 
   pages:
     - title: Home
@@ -37,9 +37,13 @@ renderer:
       - mainsail.transaction.*
       - mainsail.tx.deserialize
       - mainsail.tx.v1.Transfer
+    - title: Webhook API
+      contents:
+      - mainsail.webhook.*
     - title: Pool
       contents:
-      - pool
+      - pool.pool_configure
+      - pool.main
 
   mkdocs_config:
     site_name: Python mainsail project
