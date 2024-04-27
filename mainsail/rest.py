@@ -13,7 +13,7 @@ from collections import namedtuple
 # namedtuple to match the internal signature of urlunparse
 Urltuple = namedtuple(
     typename='Urltuple', field_names=[
-        'scheme', 'netloc', 'url', 'path', 'query', 'fragment'
+        'scheme', 'netloc', 'path', 'params', 'query', 'fragment'
     ]
 )
 
@@ -81,7 +81,7 @@ class EndPoint(object):
                 f"{peer.get('ports', {}).get(ports[0], 5000)}",
                 None, None, None, None
             )
-        base_url = base_url._replace(url='/'.join((self.path,) + path))
+        base_url = base_url._replace(path='/'.join((self.path,) + path))
         if self.func in (requests.post, requests.delete):
             resp = self.func(urlunparse(base_url), headers=headers, json=data)
         else:
