@@ -209,8 +209,8 @@ After=network.target
 [Service]
 User={os.environ.get('USER', 'unknown')}
 WorkingDirectory={normpath(sys.prefix)}
-Environment=PYTHONPATH={normpath(os.path.dirname(os.path.dirname(__file__)))}
-ExecStart={os.path.dirname(executable)}/gunicorn 'pool.api:run(debug=False)' \
+ExecStart={os.path.dirname(executable)}/gunicorn \
+'mnsl_pool.api:run(debug=False)' \
 --bind={host}:{port} --workers=2 --timeout 10 --access-logfile -
 Restart=always
 
@@ -227,7 +227,8 @@ After=network.target
 User={os.environ.get("USER", "unknown")}
 WorkingDirectory={normpath(sys.prefix)}
 Environment=PYTHONPATH={normpath(os.path.dirname(os.path.dirname(__file__)))}
-ExecStart={normpath(sys.executable)} -m pool --workers=1 --access-logfile -
+ExecStart={normpath(sys.executable)} -m mnsl_pool \
+--workers=1 --access-logfile -
 Restart=always
 
 [Install]
@@ -243,8 +244,8 @@ WantedBy=multi-user.target
     os.system("sudo mv --force ./mnsl-bg.service /etc/systemd/system")
 
     os.system("sudo systemctl daemon-reload")
-    if not os.system("sudo systemctl restart mnsl-pool"):
-        os.system("sudo systemctl start mnsl-pool")
+    if not os.system("sudo systemctl restart mnsl-srv"):
+        os.system("sudo systemctl start mnsl-srv")
     if not os.system("sudo systemctl restart mnsl-bg"):
         os.system("sudo systemctl start mnsl-bg")
 
