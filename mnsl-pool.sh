@@ -15,29 +15,28 @@ echo =================
 if [ ! -f ~/.bash_aliases ]; then
     touch ~/.bash_aliases
 fi
-if [ ! "$(type -t mnsl_venv)" = 'alias' ]; then
+if [ "$(type -t mnsl_venv)" != 'alias' ]; then
     echo "alias mnsl_venv=\". ~/.local/share/mnsl-pool/venv/bin/activate\"" >> ~/.bash_aliases
 fi
-if [ ! "$(type -t mnsl_restart)" = 'alias' ]; then
-        echo "alias mnsl_restart=\"sudo systemctl restart mnsl-srv.service && sudo systemctl restart mnsl-bg.service\"" >> ~/.bash_aliases
+if [ "$(type -t mnsl_restart)" != 'alias' ]; then
+        echo "alias mnsl_restart=\"sudo systemctl restart mnsl-srv.service ; sudo systemctl restart mnsl-bg.service\"" >> ~/.bash_aliases
 fi
-if [ ! "$(type -t log_mnsl_srv)" = 'alias' ]; then
+if [ "$(type -t log_mnsl_srv)" != 'alias' ]; then
     echo "alias log_mnsl_srv=\"journalctl -u mnsl-srv.service -ef\"" >> ~/.bash_aliases
 fi
-if [ ! "$(type -t log_mnsl_bg)" = 'alias' ]; then
+if [ "$(type -t log_mnsl_bg)" != 'alias' ]; then
     echo "alias log_mnsl_bg=\"journalctl -u mnsl-bg.service -ef\"" >> ~/.bash_aliases
 fi
-if [ ! "$(type -t mnsl_deploy)" = 'function' ]; then
+if [ "$(type -t mnsl_deploy)" != 'function' ]; then
     echo "function mnsl_deploy() { mnsl_venv && python -c \"from mnsl_pool import biom;biom.deploy()\" \$@; deactivate ; }" >> ~/.bash_aliases
 fi
-if [ ! "$(type -t add_pool)" = 'function' ]; then
+if [ "$(type -t add_pool)" != 'function' ]; then
     echo "function add_pool() { mnsl_venv && python -c \"from mnsl_pool import biom;biom.add_pool()\" \$@; deactivate ; }" >> ~/.bash_aliases
 fi
-if [ ! "$(type -t set_pool)" = 'function' ]; then
+if [ "$(type -t set_pool)" != 'function' ]; then
     echo "function set_pool() { mnsl_venv && python -c \"from mnsl_pool import biom;print(biom.set_pool())\" \$@ ; deactivate ; }" >> ~/.bash_aliases
 fi
 echo "done"
-. ~/.bashrc
 
 echo
 echo installing system dependencies
@@ -74,3 +73,5 @@ python -m pip install flask
 python -m pip install "git+https://github.com/Moustikitos/python-mainsail.git@$B"
 deactivate
 echo "done"
+
+. ~/.bashrc

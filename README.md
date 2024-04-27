@@ -57,9 +57,10 @@ activate = 1
 
 ### Ubuntu installation
 
+First read [installation script](https://bit.ly/3U6BI8v), then:
+
 ```bash
-~$ wget https://bit.ly/3U6BI8v
-~$ bash mnsl-pool.sh
+~$ bash <(wget -qO- https://bit.ly/3U6BI8v)
 ```
 
 ### Deploy pool server
