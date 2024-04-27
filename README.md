@@ -112,7 +112,7 @@ Check the logs:
 * [x] secured webhook subscriptions storage
 * [x] offline network configuration available
 * [x] pool server with remote managment tool
-* [x] `cmd` command line `set_validator` for windows platform
+* [x] `cmd` command line `set_pool` for windows platform
 * [x] pool installation and update using pip
 
 ## Support this project
