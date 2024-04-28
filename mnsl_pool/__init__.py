@@ -90,7 +90,7 @@ def pool_configure() -> flask.Response:
     """
     Flask endpoint to configure validator pool parameters. Requests are secured
     using validator signature on UTC-time-based nonce. Available parameters are
-    set in `pool.biom:DELEGATE_PARAMETERS` dict.
+    set in `pool.biom:POOL_PARAMETERS` dict.
 
     This end point is used by `set_pool` command.
     """
@@ -106,7 +106,7 @@ def pool_configure() -> flask.Response:
         info = dict(
             loadJson(path), **dict(
                 [k, v] for k, v in data.items()
-                if k in biom.DELEGATE_PARAMETERS.keys()
+                if k in biom.POOL_PARAMETERS.keys()
             )
         )
         if flask.request.method == "POST":
