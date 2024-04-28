@@ -28,7 +28,11 @@ def update_forgery(block: dict) -> bool:
     info = loadJson(os.path.join(DATA, f"{publicKey}.json"))
     if info == {}:
         raise UnknownValidator(f"{publicKey} has no subcription here")
-    excludes = info.get("excludes", [])
+    excludes = info.get("excludes", [])  # public pool
+    exclusives = info.get("exclusives", [])  # private pool
+    filter_addr = \
+        (lambda addr: addr in exclusives) if exclusives else \
+        (lambda addr: addr not in excludes)
     # Minimum vote and maximum vote have to be converted to Xtoshi.
     min_vote = info.get("min_vote", 1) * XTOSHI
     max_vote = info.get("max_vote", int(1e6)) * XTOSHI
@@ -87,7 +91,7 @@ def update_forgery(block: dict) -> bool:
         )
         voters.update(
             (v["address"], int(v["balance"])) for v in resp.get("data", [])
-            if v["address"] not in excludes
+            if filter_addr(v["address"])  # not in excludes
         )
         if resp.get("meta", {}).get("next", None) is None:
             break  # -> exit infinite loop

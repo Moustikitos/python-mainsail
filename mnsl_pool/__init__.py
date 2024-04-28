@@ -5,25 +5,51 @@ This package provides managment tools to run a pool on arkEcosystem mainsail
 framework. It computes a true block weight (TBW) distribution of block reward
 according to instant participant vote weight.
 
-## Install on Ubuntu
+### Ubuntu installation
+
+First read [installation script](https://bit.ly/3U6BI8v), then:
 
 ```bash
-wget https://bit.ly/3U6BI8v
-bash mnsl-pool.sh
+~$ bash <(wget -qO- https://bit.ly/3U6BI8v)
 ```
 
-Setup script creates 7 commands into `~/.bash_aliases` file:
+Setup script creates 8 commands into `~/.bash_aliases` file:
 
-* [x] `mnsl_deploy` takes broadcast ip address and port to create
+- [x] `mnsl_install` install a specific version
+- [x] `mnsl_deploy` takes broadcast ip address and port to create
   services managed by `systemd`.
-* [x] `add_pool` takes a validator public key to configure listening
+- [x] `add_pool` takes a validator public key to configure listening
   subscription on blockchain.
-* [x] `set_pool` modifies validator TBW pool service parameters.
-* [x] `mnsl_venv` activates the virtual environment used to run
+- [x] `set_pool` modifies validator TBW pool service parameters.
+- [x] `mnsl_venv` activates the virtual environment used to run
   mainsail pool.
-* [x] `mnsl_restart` restarts pool tasks.
-* [x] `log_mnsl_pool` shows server logs.
-* [x] `log_mnsl_bg` shows background tasks logs.
+- [x] `mnsl_restart` restarts pool tasks.
+- [x] `log_mnsl_pool` shows server logs.
+- [x] `log_mnsl_bg` shows background tasks logs.
+
+### Deploy pool server
+
+```bash
+~$ mnsl_deploy # use ip address 0.0.0.0 with port #5000
+```
+
+If you plan to deploy pool server behind a proxy, it is possible to customize
+`ip` and `port`:
+
+```bash
+~$ mnsl_deploy host=127.0.0.1 port=7542 # use localhost address with port #7542
+```
+
+### Check your pool
+
+A simple JSON server provides two endpoits:
+
+```bash
+http://{ip}:{port}/{puk}
+http://{ip}:{port}/{puk}/forgery
+```
+
+Pool data are stored in `~/.mainsail` folder.
 """
 
 import os
@@ -92,7 +118,7 @@ def pool_configure() -> flask.Response:
     using validator signature on UTC-time-based nonce. Available parameters are
     set in `pool.biom:POOL_PARAMETERS` dict.
 
-    This end point is used by `set_pool` command.
+    This endpoint is used by `set_pool` command.
     """
 
     if biom.check_headers(flask.request.headers):
@@ -109,6 +135,22 @@ def pool_configure() -> flask.Response:
                 if k in biom.POOL_PARAMETERS.keys()
             )
         )
+        # manage excludes:[add|pop]=... and exclusives:[add|pop]=...
+        for special_key in list(data.keys()):
+            if ("excludes" in special_key or "exclusives" in special_key) \
+               and ":" in special_key:
+                key, func = special_key.split(":")
+                former_value = set(info[key])
+                if func == "add":
+                    info[key] = list(former_value | set(data[special_key]))
+                elif func == "pop":
+                    info[key] = list(former_value - set(data[special_key]))
+                else:
+                    data.pop(special_key, False)
+                    LOGGER.info(
+                        f"{special_key} ignored, unknown action {func}"
+                    )
+
         if flask.request.method == "POST":
             LOGGER.debug(f"---- received> {data}")
             LOGGER.info(f"updating {puk} info> {info}")

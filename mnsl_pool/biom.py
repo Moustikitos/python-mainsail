@@ -29,6 +29,7 @@ POOL_PARAMETERS = {
     "max_vote": float,
     "min_share": float,
     "excludes": list,
+    "exclusives": list,
     "block_delay": int,
     "message": str,
     "chunck_size": int,
@@ -108,7 +109,8 @@ def _merge_options(**options):
                 LOGGER.info(f"{value} is not a valid wallet address")
             else:
                 params[key] = value
-        elif key == "excludes":
+        # to accept excludes:[add|pop]=... and exclusives:[add|pop]=...
+        elif "excludes" in key or "exclusives" in key:
             addresses = []
             for address in [
                 addr.strip() for addr in value.split(",") if addr != ""
@@ -334,11 +336,16 @@ def add_pool(**kwargs) -> None:
 
 def set_pool(**kwargs) -> requests.Response:
     """
+    ```python
+    >>> from mnsl_pool import biom
+    >>> biom.set_pool(share=0.7, min_vote=10.0)
+    ```
+
     ```bash
     $ set_pool ?key=value?
     ```
 
-    *Pool parameters:*
+    **Pool parameters:**
 
     - [x] `share` - share rate in float number (0. <= share = 1.0).
     - [x] `min_vote` - minimum vote to be considered by the pool.
@@ -346,10 +353,19 @@ def set_pool(**kwargs) -> requests.Response:
     - [x] `min_share` - minimum reward to reach for a vote wallet to be
           included in payroll.
     - [x] `excludes` - comma-separated list of wallet to exclude.
+    - [x] `exclusives` - comma-separated list of private pool wallets.
     - [x] `block_delay` - number of forged block between two payrolls.
     - [x] `message` - vendorFied message to be set on each payroll transacion.
     - [x] `chunck_size` - maximum number of recipient for a multipayment.
     - [x] `wallet` - custom wallet to receive validator share.
+
+    **`excludes` & `exclusives`**
+
+    Those parameter accept a custom action to add or remove item from list.
+
+    ```bash
+    (excludes|exclusives):[add|pop]=coma,separated,list,of,valid,addresses
+    ```
     """
     # `peer` is just to be used inside this function so we pop it from kwargs
     # if # found there
