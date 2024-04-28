@@ -96,16 +96,17 @@ class EndPoint(object):
 
 def use_network(peer: str) -> None:
     config._clear()
+    base_url = urlparse(peer)
 
     for key, value in requests.get(
-        f"{peer}/api/node/configuration",
+        urlunparse(base_url._replace(path="api/node/configuration")),
         headers={'Content-type': 'application/json'},
     ).json().get("data", {}).items():
         setattr(config, key, value)
         config._track.append(key)
 
     fees = requests.get(
-        f"{peer}/api/node/fees?days=30",
+        urlunparse(base_url._replace(path="api/node/fees", query="days=30")),
         headers={'Content-type': 'application/json'},
     ).json().get("data", {})
     setattr(config, "fees", fees)
@@ -123,9 +124,11 @@ def load_network(name: str) -> bool:
 
 
 def get_peers(peer: str, latency: int = 500) -> None:
+    base_url = urlparse(peer)
     resp = sorted(
         requests.get(
-            f"{peer}/api/peers", headers={'Content-type': 'application/json'}
+            urlunparse(base_url._replace(path="api/peers")),
+            headers={'Content-type': 'application/json'}
         ).json().get("data", {}),
         key=lambda p: p["latency"]
     )
