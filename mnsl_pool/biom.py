@@ -23,7 +23,7 @@ logging.basicConfig()
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
 
-DELEGATE_PARAMETERS = {
+POOL_PARAMETERS = {
     "share": float,
     "min_vote": float,
     "max_vote": float,
@@ -120,12 +120,12 @@ def _merge_options(**options):
                 else:
                     addresses.append(address)
             params[key] = addresses
-        elif key in DELEGATE_PARAMETERS.keys():
+        elif key in POOL_PARAMETERS.keys():
             try:
-                params[key] = DELEGATE_PARAMETERS[key](value)
+                params[key] = POOL_PARAMETERS[key](value)
             except Exception:
                 LOGGER.info(
-                    f"conversion into {DELEGATE_PARAMETERS[key]} "
+                    f"conversion into {POOL_PARAMETERS[key]} "
                     f"impossible for {value}"
                 )
         else:

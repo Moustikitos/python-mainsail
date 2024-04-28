@@ -21,6 +21,9 @@ __all__ = [
 
 
 class Transfer(Transaction):
+    """
+    TODO: write doc
+    """
 
     def __init__(
         self, amount: float, recipientId: str,
