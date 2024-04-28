@@ -26,7 +26,7 @@ Type or paste your passphrase >
 
 ## Linux distributions
 
-Due to [RIPEMD160 issue with OpenSSL v>=3](https://github.com/openssl/openssl/issues/16994)
+Due to [RIPEMD160 issue with OpenSSL v>=3](https://github.com/openssl/openssl/issues/16994),
 `hashlib.ripemd160` is disabled within `python3`. To enable it back, get the
 installation folder...
 
@@ -57,15 +57,16 @@ activate = 1
 
 ### Ubuntu installation
 
+First read [installation script](https://bit.ly/3U6BI8v), then:
+
 ```bash
-~$ wget https://bit.ly/3U6BI8v
-~$ bash mnsl-pool.sh
+~$ bash <(wget -qO- https://bit.ly/3U6BI8v)
 ```
 
 ### Deploy pool server
 
 ```bash
-~$ mnsl_deploy # use ip address 0.0.0.0 with  port #5000
+~$ mnsl_deploy # use ip address 0.0.0.0 with port #5000
 ```
 
 If you plan to deploy pool server behind a proxy, it is possible to customize
@@ -87,6 +88,19 @@ Configure pool options:
 ~$ set_pool ?key=value?
 ```
 
+*Pool parameters:*
+
+- [x] `share` - share rate in float number (0. <= share = 1.0).
+- [x] `min_vote` - minimum vote to be considered by the pool.
+- [x] `max_vote` - maximum vote weight caped in the pool.
+- [x] `min_share` - minimum reward to reach for a vote wallet to be included in payroll.
+- [x] `excludes` - comma-separated list of wallet to exclude.
+- [x] `exclusives` - comma-separated list of private pool wallets.
+- [x] `block_delay` - number of forged block between two payrolls.
+- [x] `message` - vendorFied message to be set on each payroll transacion.
+- [x] `chunck_size` - maximum number of recipient for a multipayment.
+- [x] `wallet` - custom wallet to receive validator share.
+
 Check the logs:
 
 ```bash
@@ -96,22 +110,23 @@ Check the logs:
 
 ## Available transactions
 
-* [x] Transfer
-* [x] ValidatorRegistration
-* [x] Vote
-* [x] MultiSignature
-* [x] MultiPayment
-* [x] ValidatorResignation
-* [x] UsernameRegistration
-* [x] UsernameResignation
+- [x] Transfer
+- [x] ValidatorRegistration
+- [x] Vote
+- [x] MultiSignature
+- [x] MultiPayment
+- [x] ValidatorResignation
+- [x] UsernameRegistration
+- [x] UsernameResignation
 
 ## Features
 
-* [x] pool server with remote managment tool
-* [x] `cmd` command line `set_validator` for windows platform
-* [x] secured private keys storage
-* [x] secured webhook subscriptions storage
-* [x] offline network configuration available
+- [x] secured private keys storage
+- [x] secured webhook subscriptions storage
+- [x] offline network configuration available
+- [x] pool server with remote managment tool
+- [x] `cmd` command line `set_pool` for windows platform
+- [x] pool installation and update using pip
 
 ## Support this project
 

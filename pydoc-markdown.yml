@@ -32,18 +32,18 @@ renderer:
     - title: Identity
       contents:
       - mainsail.identity.*
-    - title: Transactions
-      contents:
-      - mainsail.transaction.*
-      - mainsail.tx.deserialize
-      - mainsail.tx.v1.Transfer
+    # - title: Transactions
+    #   contents:
+    #   - mainsail.transaction.*
+    #   - mainsail.tx.deserialize
+    #   - mainsail.tx.v1.Transfer
     - title: Webhook API
       contents:
       - mainsail.webhook.*
     - title: Pool
       contents:
-      - pool.pool_configure
-      - pool.main
+      - mnsl_pool.pool_configure
+      - mnsl_pool.biom.set_pool
 
   mkdocs_config:
     site_name: Python mainsail project

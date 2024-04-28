@@ -95,6 +95,7 @@ Configure pool options:
 - [x] `max_vote` - maximum vote weight caped in the pool.
 - [x] `min_share` - minimum reward to reach for a vote wallet to be included in payroll.
 - [x] `excludes` - comma-separated list of wallet to exclude.
+- [x] `exclusives` - comma-separated list of private pool wallets.
 - [x] `block_delay` - number of forged block between two payrolls.
 - [x] `message` - vendorFied message to be set on each payroll transacion.
 - [x] `chunck_size` - maximum number of recipient for a multipayment.
