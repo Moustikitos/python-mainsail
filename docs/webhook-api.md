@@ -1,6 +1,6 @@
 <a id="mainsail.webhook"></a>
 
-# mainsail.webhook
+# webhook
 
 <a id="mainsail.webhook.condition"></a>
 

@@ -1,7 +1,7 @@
 # python-mainsail
 
 This package provides a simple implementation to interact with `Ark` blockchain
-API and managment tools for validators aiming to run a pool.
+API and managment tools for validators aiming to [run a pool](pool.md).
 
 ```python
 >>> from mainsail.tx.v1 import Transfer
@@ -51,61 +51,6 @@ activate = 1
 
 [legacy_sect]
 activate = 1
-```
-
-## Validator pool managment tools
-
-### Ubuntu installation
-
-First read [installation script](https://bit.ly/3U6BI8v), then:
-
-```bash
-~$ bash <(wget -qO- https://bit.ly/3U6BI8v)
-```
-
-### Deploy pool server
-
-```bash
-~$ mnsl_deploy # use ip address 0.0.0.0 with port #5000
-```
-
-If you plan to deploy pool server behind a proxy, it is possible to customize
-`ip` and `port`:
-
-```bash
-~$ mnsl_deploy host=127.0.0.1 port=7542 # use localhost address with port #7542
-```
-
-Setup a pool using validator public key:
-
-```bash
-~$ add_pool puk=02968e862011738ac185e87f47dec61b32c842fd8e24fab625c02a15ad7e2d0f65
-```
-
-Configure pool options:
-
-```bash
-~$ set_pool ?key=value?
-```
-
-*Pool parameters:*
-
-- [x] `share` - share rate in float number (0. <= share = 1.0).
-- [x] `min_vote` - minimum vote to be considered by the pool.
-- [x] `max_vote` - maximum vote weight caped in the pool.
-- [x] `min_share` - minimum reward to reach for a vote wallet to be included in payroll.
-- [x] `excludes` - comma-separated list of wallet to exclude.
-- [x] `exclusives` - comma-separated list of private pool wallets.
-- [x] `block_delay` - number of forged block between two payrolls.
-- [x] `message` - vendorFied message to be set on each payroll transacion.
-- [x] `chunck_size` - maximum number of recipient for a multipayment.
-- [x] `wallet` - custom wallet to receive validator share.
-
-Check the logs:
-
-```bash
-~$ log_mnsl_pool
-~$ log_mnsl_bg
 ```
 
 ## Available transactions

@@ -112,9 +112,11 @@ def _merge_options(**options):
         # to accept excludes:[add|pop]=... and exclusives:[add|pop]=...
         elif "excludes" in key or "exclusives" in key:
             addresses = []
-            for address in [
-                addr.strip() for addr in value.split(",") if addr != ""
-            ]:
+            if isinstance(value, str):
+                value = [
+                    addr.strip() for addr in value.split(",") if addr != ""
+                ]
+            for address in value:
                 try:
                     base58.b58decode_check(address)
                 except Exception:
@@ -196,6 +198,26 @@ def secured_request(
 
 
 def deploy(host: str = "127.0.0.1", port: int = 5000):
+    """
+    **Deploy pool server**
+
+    ```python
+    >>> from mnsl_pool import biom
+    >>> biom.deploy()
+    ```
+
+    ```bash
+    ~$ mnsl_deploy # use ip address 0.0.0.0 with port #5000
+    ```
+
+    If you plan to deploy pool server behind a proxy, it is possible to
+    customize `ip` and `port`:
+
+    ```bash
+    ~$ mnsl_deploy host=127.0.0.1 port=7542 # use localhost address with port \
+#7542
+    ```
+    """
     options = _merge_options()
     host = options.get("host", host)
     port = options.get("port", host)
@@ -253,6 +275,45 @@ WantedBy=multi-user.target
 
 
 def add_pool(**kwargs) -> None:
+    """
+    **Initialize a pool**
+
+    ```python
+    >>> from mnsl_pool import biom
+    >>> biom.add_pool(puk="033f786d4875bcae61eb934e6af74090f254d7a0c955263d1ec\
+9c504db")
+    ```
+
+    ```bash
+    ~$ add_pool puk=033f786d4875bcae61eb934e6af74090f254d7a0c955263d1ec9c504db\
+ba5477ba
+    ```
+
+    ```
+    INFO:mnsl_pool.biom:grabed options: {'puk': '033f786d4875bcae61eb934e6af74\
+090f254d7a0c955263d1ec9c504dbba5477ba'}
+    Type or paste your passphrase >
+    enter pin code to secure secret (only figures)>
+    provide a network peer API [default=localhost:4003]>
+    provide your webhook peer [default=localhost:4004]>
+    provide your target server [default=localhost:5000]>
+    INFO:mnsl_pool.biom:grabed options: {'prk': [0, 0, 0, 0], 'nethash': '7b9a\
+7c6a14d3f8fb3f47c434b8c6ef0843d5622f6c209ffeec5411aabbf4bf1c', 'webhook': '47f\
+4ede0-1dcb-4653-b9a2-20e766fc31d5', 'puk': '033f786d4875bcae61eb934e6af74090f2\
+54d7a0c955263d1ec9c504dbba5477ba'}
+    INFO:mnsl_pool.biom:delegate 033f786d4875bcae61eb934e6af74090f254d7a0c9552\
+63d1ec9c504dbba5477ba set
+    ```
+
+    Check your pool using two endpoits:
+
+    ```bash
+    http://{ip}:{port}/{puk or username}
+    http://{ip}:{port}/{puk or username}/forgery
+    ```
+
+    Pool data are stored in `~/.mainsail` folder.
+    """
     options = _merge_options()
     puk = options.get("puk", None)
     if puk is None:
@@ -336,16 +397,31 @@ def add_pool(**kwargs) -> None:
 
 def set_pool(**kwargs) -> requests.Response:
     """
+    **Configure a pool**
+
     ```python
     >>> from mnsl_pool import biom
-    >>> biom.set_pool(share=0.7, min_vote=10.0)
+    >>> addresses = [
+    ... "D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv",
+    ... "DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU"
+    ... ]
+    >>> biom.set_pool(share=0.7, min_vote=10.0, exlusives=addresses)
     ```
 
     ```bash
-    $ set_pool ?key=value?
+    $ set_pool --share=0.7 --min-vote=10.0 --exclusives=D5Ha4o3UTuTd59vjDw1F26\
+mYhaRdXh7YPv,DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU
     ```
 
-    **Pool parameters:**
+    ```
+    INFO:pool.biom:grabed options: {'share': 0.7, 'min_vote': 10.0, 'exclusive\
+s': 'D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv,DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU'}
+    enter validator security pincode>
+    {'status': 204, 'updated': {'exclusives': ['D5Ha4o3UTuTd59vjDw1F26mYhaRdXh\
+7YPv', 'DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU'], 'min_vote': 10.0, 'share': 0.7}}
+    ```
+
+    available parameters:
 
     - [x] `share` - share rate in float number (0. <= share = 1.0).
     - [x] `min_vote` - minimum vote to be considered by the pool.

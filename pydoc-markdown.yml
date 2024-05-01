@@ -20,7 +20,7 @@ renderer:
       Method: 3
       Function: 2
       Data: 4
-    add_module_prefix: true
+    add_module_prefix: false
     add_method_class_prefix: true
     add_member_class_prefix: true
     descriptive_module_title: false
@@ -42,7 +42,9 @@ renderer:
       - mainsail.webhook.*
     - title: Pool
       contents:
-      - mnsl_pool.pool_configure
+      - mnsl_pool
+      - mnsl_pool.biom.deploy
+      - mnsl_pool.biom.add_pool
       - mnsl_pool.biom.set_pool
 
   mkdocs_config:

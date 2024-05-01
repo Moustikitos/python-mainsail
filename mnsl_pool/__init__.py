@@ -2,7 +2,7 @@
 
 """
 This package provides managment tools to run a pool on arkEcosystem mainsail
-framework. It computes a true block weight (TBW) distribution of block reward
+framework. It computes a true block weight (TBW) distribution of reward
 according to instant participant vote weight.
 
 ### Ubuntu installation
@@ -26,30 +26,6 @@ Setup script creates 8 commands into `~/.bash_aliases` file:
 - [x] `mnsl_restart` restarts pool tasks.
 - [x] `log_mnsl_pool` shows server logs.
 - [x] `log_mnsl_bg` shows background tasks logs.
-
-### Deploy pool server
-
-```bash
-~$ mnsl_deploy # use ip address 0.0.0.0 with port #5000
-```
-
-If you plan to deploy pool server behind a proxy, it is possible to customize
-`ip` and `port`:
-
-```bash
-~$ mnsl_deploy host=127.0.0.1 port=7542 # use localhost address with port #7542
-```
-
-### Check your pool
-
-A simple JSON server provides two endpoits:
-
-```bash
-http://{ip}:{port}/{puk}
-http://{ip}:{port}/{puk}/forgery
-```
-
-Pool data are stored in `~/.mainsail` folder.
 """
 
 import os
@@ -66,9 +42,9 @@ logging.basicConfig()
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
 
-CONF_PARAMETERS = [
-    "sleep_time"
-]
+CONF_PARAMETERS = {
+    "sleep_time": int
+}
 
 
 # create worker and its queue
@@ -113,13 +89,11 @@ def configure():
 
 @app.route("/pool/configure", methods=["POST"])
 def pool_configure() -> flask.Response:
-    """
-    Flask endpoint to configure validator pool parameters. Requests are secured
-    using validator signature on UTC-time-based nonce. Available parameters are
-    set in `pool.biom:POOL_PARAMETERS` dict.
+    # Flask endpoint to configure validator pool parameters. Requests are
+    # secured # using validator signature on UTC-time-based nonce. Available
+    # parameters are set in `pool.biom:POOL_PARAMETERS` dict.
 
-    This endpoint is used by `set_pool` command.
-    """
+    # This endpoint is used by `set_pool` command.
 
     if biom.check_headers(flask.request.headers):
         puk = flask.request.headers["puk"]
@@ -179,11 +153,10 @@ def block_forged() -> flask.Response:
 
 
 def main():
-    """
-    Server main loop ran as a `threading.Thread` target. It gets block
-    passed by `block_forged` (`/block/forged` endpoint) and update forgery
-    of validator issuing the block.
-    """
+    # Server main loop ran as a `threading.Thread` target. It gets block
+    # passed by `block_forged` (`/block/forged` endpoint) and update forgery
+    # of validator issuing the block.
+
     LOGGER.info("entering main loop")
     while True:
         block = JOB.get()
