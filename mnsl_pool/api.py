@@ -2,12 +2,32 @@
 
 import os
 import threading
+from mainsail import rest
 
 from mnsl_pool import tbw, flask, loadJson, main, app, JOB
 
 
+def _find(puk_or_username):
+    if os.path.isfile(os.path.join(tbw.DATA, f"{puk_or_username}.json")):
+        return puk_or_username
+    for name in [n for n in os.listdir(tbw.DATA) if n.endswith(".json")]:
+        try:
+            rest.load_network(
+                loadJson(os.path.join(tbw.DATA, name))["nethash"]
+            )
+        except Exception:
+            pass
+        else:
+            puk = name.split(".")[0]
+            resp = rest.GET.api.wallets(puk)
+            return puk if puk_or_username == resp.get("username", "") else \
+                puk_or_username
+    return puk_or_username
+
+
 @app.route("/<string:puk>", methods=["GET"])
 def validator(puk: str) -> flask.Response:
+    puk = _find(puk)
     info = loadJson(os.path.join(tbw.DATA, f"{puk}.json"))
     if len(info):
         info.pop("prk", False)
@@ -17,6 +37,7 @@ def validator(puk: str) -> flask.Response:
 
 @app.route("/<string:puk>/forgery", methods=["GET"])
 def forgery(puk: str) -> flask.Response:
+    puk = _find(puk)
     path = os.path.join(tbw.DATA, puk, "forgery.json")
     if os.path.exists(path):
         forgery = loadJson(path)
