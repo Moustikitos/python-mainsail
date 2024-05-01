@@ -39,7 +39,10 @@
                                 <a href="identity/" class="nav-link">Identity</a>
                             </li>
                             <li class="navitem">
-                                <a href="transactions/" class="nav-link">Transactions</a>
+                                <a href="webhook-api/" class="nav-link">Webhook API</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="pool/" class="nav-link">Pool</a>
                             </li>
                         </ul>
 
@@ -82,6 +85,10 @@
             
             <li class="nav-item" data-level="1"><a href="#python-mainsail" class="nav-link">python-mainsail</a>
               <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#linux-distributions" class="nav-link">Linux distributions</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
             <li class="nav-item" data-level="2"><a href="#available-transactions" class="nav-link">Available transactions</a>
               <ul class="nav flex-column">
               </ul>
@@ -102,8 +109,8 @@
                     <div class="col-md-9" role="main">
 
 <h1 id="python-mainsail">python-mainsail</h1>
-<p>This package aims to provide a simple implementation to bake offline <code>Ark</code>
-transaction and interact with the blockchain API.</p>
+<p>This package provides a simple implementation to interact with <code>Ark</code> blockchain
+API and managment tools for validators aiming to <a href="pool/">run a pool</a>.</p>
 <pre><code class="language-python">&gt;&gt;&gt; from mainsail.tx.v1 import Transfer
 &gt;&gt;&gt; from mainsail import rest
 &gt;&gt;&gt; # http://xxx.xxx.xxx.xxx:4006/api/wallets/toons
@@ -123,6 +130,28 @@ Type or paste your passphrase &gt;
 &gt;&gt;&gt; t.send()
 {'data': {'accept': [0], 'broadcast': [0], 'excess': [], 'invalid': []}}
 </code></pre>
+<h2 id="linux-distributions">Linux distributions</h2>
+<p>Due to <a href="https://github.com/openssl/openssl/issues/16994">RIPEMD160 issue with OpenSSL v&gt;=3</a>,
+<code>hashlib.ripemd160</code> is disabled within <code>python3</code>. To enable it back, get the
+installation folder&hellip;</p>
+<pre><code class="language-bash">openssl version -d
+</code></pre>
+<p>&hellip; and make sure that the openssl config file contains following lines:</p>
+<pre><code class="language-conf">openssl_conf = openssl_init
+
+[openssl_init]
+providers = provider_sect
+
+[provider_sect]
+default = default_sect
+legacy = legacy_sect
+
+[default_sect]
+activate = 1
+
+[legacy_sect]
+activate = 1
+</code></pre>
 <h2 id="available-transactions">Available transactions</h2>
 <ul class="task-list">
 <li class="task-list-item"><input type="checkbox" disabled checked/> Transfer</li>
@@ -139,6 +168,9 @@ Type or paste your passphrase &gt;
 <li class="task-list-item"><input type="checkbox" disabled checked/> secured private keys storage</li>
 <li class="task-list-item"><input type="checkbox" disabled checked/> secured webhook subscriptions storage</li>
 <li class="task-list-item"><input type="checkbox" disabled checked/> offline network configuration available</li>
+<li class="task-list-item"><input type="checkbox" disabled checked/> pool server with remote managment tool</li>
+<li class="task-list-item"><input type="checkbox" disabled checked/> <code>cmd</code> command line <code>set_pool</code> for windows platform</li>
+<li class="task-list-item"><input type="checkbox" disabled checked/> pool installation and update using pip</li>
 </ul>
 <h2 id="support-this-project">Support this project</h2>
 <!-- [![Liberapay receiving](https://img.shields.io/liberapay/goal/Toons?logo=liberapay)](https://liberapay.com/Toons/donate) -->
@@ -227,5 +259,5 @@ Type or paste your passphrase &gt;
 
 <!--
 MkDocs version : 1.5.3
-Build Date UTC : 2024-04-07 18:57:49.189836+00:00
+Build Date UTC : 2024-05-01 13:45:47.692752+00:00
 -->

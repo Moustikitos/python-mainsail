@@ -8,7 +8,7 @@
         
         
         <link rel="shortcut icon" href="../img/favicon.ico">
-        <title>Transactions - Python mainsail project</title>
+        <title>Webhook API - Python mainsail project</title>
         <link href="../css/bootstrap.min.css" rel="stylesheet">
         <link href="../css/font-awesome.min.css" rel="stylesheet">
         <link href="../css/base.css" rel="stylesheet">
@@ -39,7 +39,10 @@
                                 <a href="../identity/" class="nav-link">Identity</a>
                             </li>
                             <li class="navitem active">
-                                <a href="./" class="nav-link">Transactions</a>
+                                <a href="./" class="nav-link">Webhook API</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../pool/" class="nav-link">Pool</a>
                             </li>
                         </ul>
 
@@ -55,12 +58,12 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="next" class="nav-link disabled">
+                                <a rel="next" href="../pool/" class="nav-link">
                                     Next <i class="fa fa-arrow-right"></i>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="https://github.com/Moustikitos/python-mainsail/edit/master/docs/transactions.md" class="nav-link"><i class="fa fa-github"></i> Edit on GitHub</a>
+                                <a href="https://github.com/Moustikitos/python-mainsail/edit/master/docs/webhook-api.md" class="nav-link"><i class="fa fa-github"></i> Edit on GitHub</a>
                             </li>
                     </ul>
                 </div>
@@ -80,9 +83,9 @@
     <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
         <ul class="nav flex-column">
             
-            <li class="nav-item" data-level="1"><a href="#module-mainsailtx" class="nav-link">Module mainsail.tx</a>
+            <li class="nav-item" data-level="1"><a href="#webhook" class="nav-link">webhook</a>
               <ul class="nav flex-column">
-            <li class="nav-item" data-level="2"><a href="#deserialize" class="nav-link">deserialize</a>
+            <li class="nav-item" data-level="2"><a href="#condition" class="nav-link">condition</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -93,24 +96,61 @@
 </div></div>
                     <div class="col-md-9" role="main">
 
-<p><a id="mainsail.tx"></a></p>
-<h1 id="module-mainsailtx">Module mainsail.tx</h1>
-<p><a id="mainsail.tx.deserialize"></a></p>
-<h2 id="deserialize">deserialize</h2>
-<pre><code class="language-python">def deserialize(serial: str) -&gt; Transaction
+<p><a id="mainsail.webhook"></a></p>
+<h1 id="webhook">webhook</h1>
+<p><a id="mainsail.webhook.condition"></a></p>
+<h2 id="condition">condition</h2>
+<pre><code class="language-python">def condition(expr: str) -&gt; dict
 </code></pre>
-<p>Build a transaction from hexadecimal string.</p>
+<p>Webhook condition builder from <code>str</code> expression.</p>
+<style>td,th{border:none!important;text-align:left;}</style>
+<table>
+<thead>
+<tr>
+<th>webhook</th>
+<th>expr</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lt</code> / <code>lte</code></td>
+<td><code>&lt;</code> / <code>&lt;=</code></td>
+</tr>
+<tr>
+<td><code>gt</code> / <code>gte</code></td>
+<td><code>&gt;</code> / <code>&gt;=</code></td>
+</tr>
+<tr>
+<td><code>eq</code> / <code>ne</code></td>
+<td><code>==</code> / <code>!=</code></td>
+</tr>
+<tr>
+<td><code>truthy</code> / <code>falsy</code></td>
+<td><code>?</code> / <code>!?</code></td>
+</tr>
+<tr>
+<td><code>REGEXP</code> / <code>contains</code></td>
+<td><code>\</code> / <code>$</code></td>
+</tr>
+<tr>
+<td><code>between</code> / <code>not-between</code></td>
+<td><code>&lt;&gt;</code> / <code>!&lt;&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python">&gt;&gt;&gt; from mainsail import webhook
+&gt;&gt;&gt; webhook.condition(&quot;vendorField\^.*payroll.*$&quot;)
+{'value': '^.*payroll.*$', 'key': 'vendorField', 'condition': 'regexp'}
+&gt;&gt;&gt; webhook.condition(&quot;amount&lt;&gt;2000000000000:4000000000000&quot;)
+{'value': {'min': '2000000000000', 'max': '4000000000000'}, 'condition': 'between', 'key': 'amount'}
+</code></pre>
 <p><strong>Arguments</strong>:</p>
 <ul>
-<li><code>serial</code> <em>str</em> - the serialized transaction as hexadecimal string.</li>
+<li><code>expr</code> <em>str</em> - human readable expression.</li>
 </ul>
 <p><strong>Returns</strong>:</p>
 <ul>
-<li><code>Transaction</code> - the transaction.</li>
-</ul>
-<p><strong>Raises</strong>:</p>
-<ul>
-<li><code>AttributeError</code> - if transaction builder is not defined.</li>
+<li><code>dict</code> - webhook conditions</li>
 </ul></div>
             </div>
         </div>
