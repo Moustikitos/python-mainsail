@@ -19,14 +19,16 @@ def _find(puk_or_username):
             pass
         else:
             puk = name.split(".")[0]
-            resp = rest.GET.api.wallets(puk)
-            return puk if puk_or_username == resp.get("username", "") else \
-                puk_or_username
-    return puk_or_username
+            attributes = rest.GET.api.wallets(puk).get("attributes", {})
+            tbw.LOGGER.info(f"{name} : {attributes}")
+            if puk_or_username == attributes.get("username", ""):
+                return puk
 
 
 @app.route("/<string:puk>", methods=["GET"])
 def validator(puk: str) -> flask.Response:
+    if puk.endswith(".ico"):
+        return "", 404
     puk = _find(puk)
     info = loadJson(os.path.join(tbw.DATA, f"{puk}.json"))
     if len(info):
