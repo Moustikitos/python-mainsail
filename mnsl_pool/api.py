@@ -45,7 +45,7 @@ def forgery(puk: str) -> flask.Response:
         forgery = loadJson(path)
         forgery.pop("reward", False)
         for k in forgery:
-            if k not in ["blocks", "contributions"]:
+            if k not in ["blocks", "contributions", "lost XTOSHI"]:
                 forgery[k] /= tbw.XTOSHI
         for k in forgery.get("contributions", {}):
             forgery["contributions"][k] /= tbw.XTOSHI

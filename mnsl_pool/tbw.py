@@ -103,7 +103,8 @@ def update_forgery(block: dict) -> bool:
     LOGGER.debug(f"---- found {len(voters)} valid voters")
     # compute vote weight amongs fltered voters
     vote_weight = float(sum(voters.values()))
-    voters_weight = dict([a, b / vote_weight] for a, b in voters.items())
+    voter_weights = dict([a, b / vote_weight] for a, b in voters.items())
+    n_voters = len(voter_weights)
 
     # 4. UPDATE FORGERY ACCORDING TO REWARDS AND VOTER WEIGHT
     forgery = loadJson(os.path.join(DATA, publicKey, "forgery.json"))
@@ -112,19 +113,28 @@ def update_forgery(block: dict) -> bool:
         address, int(
             math.floor(
                 contributions.get(address, 0) +
-                shared_reward * voters_weight[address]
+                shared_reward * voter_weights[address]
             )
         )
-    ] for address in voters_weight)
+    ] for address in voter_weights)
     forgery["reward"] = forgery.get("reward", 0) + generator_reward
     forgery["blocks"] = forgery.get("blocks", 0) + blocks
     forgery["fee"] = forgery.get("fee", 0) + fee
-    forgery["contributions"] = new_contributions
-    # compute checksum to determine XTOSHI
+    # compute checksum to determine lost XTOSHI due to roundings then
+    # redistribute XTOSHI if possible
     checksum = (sum(new_contributions.values()) + forgery["reward"])
     checksum -= int(rest.config.constants["reward"]) * forgery["blocks"]
     checksum -= forgery.get("undistributed", 0)
-    LOGGER.info(f"losed XTOSHI: {checksum}")
+    checksum = abs(checksum)
+    if checksum >= n_voters:  # can give n XTOSHI per voter
+        xtoshis = int(checksum // n_voters)
+        for k in new_contributions:
+            new_contributions[k] += xtoshis
+        checksum -= n_voters * xtoshis
+        LOGGER.info(f"{n_voters * xtoshis} lost XTOSHI redistributed")
+    LOGGER.info(f"{checksum} lost XTOSHI remaining")
+    forgery["contributions"] = new_contributions
+    forgery["lost XTOSHI"] = checksum
     # update true block weight state
     dumpJson(block, os.path.join(DATA, publicKey, "last.block"))
     dumpJson(forgery, os.path.join(DATA, publicKey, "forgery.json"))
@@ -173,7 +183,8 @@ def freeze_forgery(puk: str, **options) -> None:
         for voter, amount in forgery.get("contributions", {}).items()
     )
     forgery["contributions"] = contributions
-    forgery["undistributed"] = sum(contributions.values())
+    forgery["undistributed"] = sum(contributions.values()) + \
+        forgery.pop("lost XTOSHI", 0)
     LOGGER.info(
         f"forgery frozen @ {time.strftime('%Y%m%d-%H%M')} - "
         f"{forgery['undistributed']} XTOSHI undistributed"
