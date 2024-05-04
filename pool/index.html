@@ -38,9 +38,6 @@
                             <li class="navitem">
                                 <a href="../identity/" class="nav-link">Identity</a>
                             </li>
-                            <li class="navitem">
-                                <a href="../webhook-api/" class="nav-link">Webhook API</a>
-                            </li>
                             <li class="navitem active">
                                 <a href="./" class="nav-link">Pool</a>
                             </li>
@@ -53,7 +50,7 @@
                             </a>
                         </li>
                             <li class="nav-item">
-                                <a rel="prev" href="../webhook-api/" class="nav-link">
+                                <a rel="prev" href="../identity/" class="nav-link">
                                     <i class="fa fa-arrow-left"></i> Previous
                                 </a>
                             </li>
@@ -118,11 +115,12 @@ according to instant participant vote weight.</p>
 <p>First read <a href="https://bit.ly/3U6BI8v">installation script</a>, then:</p>
 <pre><code class="language-bash">~$ bash &lt;(wget -qO- https://bit.ly/3U6BI8v)
 </code></pre>
-<p>Setup script creates 8 commands into <code>~/.bash_aliases</code> file:</p>
+<p>Setup script creates 9 commands into <code>~/.bash_aliases</code> file:</p>
 <ul class="task-list">
 <li class="task-list-item"><input type="checkbox" disabled checked/> <code>mnsl_install</code> install a specific version</li>
 <li class="task-list-item"><input type="checkbox" disabled checked/> <code>mnsl_deploy</code> takes broadcast ip address and port to create
   services managed by <code>systemd</code>.</li>
+<li class="task-list-item"><input type="checkbox" disabled checked/> <code>dump_prk</code> secures validator private key to sign transactions</li>
 <li class="task-list-item"><input type="checkbox" disabled checked/> <code>add_pool</code> takes a validator public key to configure listening
   subscription on blockchain.</li>
 <li class="task-list-item"><input type="checkbox" disabled checked/> <code>set_pool</code> modifies validator TBW pool service parameters.</li>
@@ -145,7 +143,10 @@ according to instant participant vote weight.</p>
 <pre><code class="language-bash">~$ mnsl_deploy # use ip address 0.0.0.0 with port `5000`
 </code></pre>
 <p>If you plan to deploy pool server behind a proxy, it is possible to
-customize <code>ip</code> and <code>port</code>:</p>
+using <code>host</code> and <code>port</code> parameters:</p>
+<pre><code class="language-python">&gt;&gt;&gt; from mnsl_pool import biom
+&gt;&gt;&gt; biom.deploy(host=&quot;127.0.0.1&quot;, port=7542)
+</code></pre>
 <pre><code class="language-bash">~$ mnsl_deploy host=127.0.0.1 port=7542 # use localhost address with port `7542`
 </code></pre>
 <p><a id="mnsl_pool.biom.add_pool"></a></p>
@@ -158,7 +159,7 @@ customize <code>ip</code> and <code>port</code>:</p>
 </code></pre>
 <pre><code class="language-bash">~$ add_pool puk=033f786d4875bcae61eb934e6af74090f254d7a0c955263d1ec9c504dbba5477ba
 </code></pre>
-<pre><code>INFO:mnsl_pool.biom:grabed options: {'puk': '033f786d4875bcae61eb934e6af74090f254d7a0c955263d1ec9c504dbba5477ba'}
+<pre><code class="language-raw">INFO:mnsl_pool.biom:grabed options: {'puk': '033f786d4875bcae61eb934e6af74090f254d7a0c955263d1ec9c504dbba5477ba'}
 Type or paste your passphrase &gt;
 enter pin code to secure secret (only figures)&gt;
 provide a network peer API [default=localhost:4003]&gt;
@@ -167,8 +168,8 @@ provide your target server [default=localhost:5000]&gt;
 INFO:mnsl_pool.biom:grabed options: {'prk': [0, 0, 0, 0], 'nethash': '7b9a7c6a14d3f8fb3f47c434b8c6ef0843d5622f6c209ffeec5411aabbf4bf1c', 'webhook': '47f4ede0-1dcb-4653-b9a2-20e766fc31d5', 'puk': '033f786d4875bcae61eb934e6af74090f254d7a0c955263d1ec9c504dbba5477ba'}
 INFO:mnsl_pool.biom:delegate 033f786d4875bcae61eb934e6af74090f254d7a0c955263d1ec9c504dbba5477ba set
 </code></pre>
-<p>Check your pool using two endpoits:</p>
-<pre><code class="language-bash">http://{ip}:{port}/{puk or username}
+<p>Check your pool using two endpoints:</p>
+<pre><code class="language-raw">http://{ip}:{port}/{puk or username}
 http://{ip}:{port}/{puk or username}/forgery
 </code></pre>
 <p>Pool data are stored in <code>~/.mainsail</code> folder.</p>
@@ -186,11 +187,11 @@ http://{ip}:{port}/{puk or username}/forgery
 </code></pre>
 <pre><code class="language-bash">$ set_pool --share=0.7 --min-vote=10.0 --exclusives=D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv,DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU
 </code></pre>
-<pre><code>INFO:pool.biom:grabed options: {'share': 0.7, 'min_vote': 10.0, 'exclusives': 'D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv,DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU'}
+<pre><code class="language-raw">INFO:pool.biom:grabed options: {'share': 0.7, 'min_vote': 10.0, 'exclusives': 'D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv,DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU'}
 enter validator security pincode&gt;
 {'status': 204, 'updated': {'exclusives': ['D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv', 'DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU'], 'min_vote': 10.0, 'share': 0.7}}
 </code></pre>
-<p>available parameters:</p>
+<p>Available pool parameters:</p>
 <ul class="task-list">
 <li class="task-list-item"><input type="checkbox" disabled checked/> <code>share</code> - share rate in float number (0. &lt;= share = 1.0).</li>
 <li class="task-list-item"><input type="checkbox" disabled checked/> <code>min_vote</code> - minimum vote to be considered by the pool.</li>
@@ -204,9 +205,33 @@ enter validator security pincode&gt;
 <li class="task-list-item"><input type="checkbox" disabled checked/> <code>chunck_size</code> - maximum number of recipient for a multipayment.</li>
 <li class="task-list-item"><input type="checkbox" disabled checked/> <code>wallet</code> - custom wallet to receive validator share.</li>
 </ul>
-<p><strong><code>excludes</code> &amp; <code>exclusives</code></strong></p>
-<p>Those parameter accept a custom action to add or remove item from list.</p>
-<pre><code class="language-bash">(excludes|exclusives):[add|pop]=coma,separated,list,of,valid,addresses
+<p>Available extra parameters:</p>
+<ul class="task-list">
+<li class="task-list-item"><input type="checkbox" disabled checked/> <code>url</code> - the url of node if domain name is set</li>
+<li class="task-list-item"><input type="checkbox" disabled checked/> <code>ip</code> - the ip address of pool service</li>
+<li class="task-list-item"><input type="checkbox" disabled checked/> <code>port</code> - the port used by pool service</li>
+</ul>
+<p>Those parameters are used to remotly configure pool options. Validator
+private key have to be secrured on the remote system using <code>dump_prk</code>.</p>
+<p><strong>Run a public pool</strong></p>
+<p>Voter selection can be donne using <code>min_vote</code> and <code>max_vote</code> options. A
+more convenient way is possible with <code>excludes</code> list, any address in this
+list wil be ignored by the TBW process.</p>
+<p><strong>Run a private pool</strong></p>
+<p><code>min_vote</code> and <code>max_vote</code> parameters shouldn&rsquo;t be set but all the addresses
+granted by the private pool have to be mentioned in <code>exclusive</code> list.</p>
+<p><strong><code>excludes</code> &amp; <code>exclusives</code> lists</strong></p>
+<p>List parameters accept a custom action to add or remove item from list.</p>
+<pre><code class="language-bash">(excludes|exclusives)[:add|:pop]=coma,separated,list,of,valid,addresses
+</code></pre>
+<p><em>Define a complete <code>exclusives</code> list:</em></p>
+<pre><code class="language-bash">$ set_pool exclusives=D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv,DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU
+</code></pre>
+<p><em>Add <code>DCzk4aCBCeHTDUZ3RnkiK8aqpYYZ9iC51W</code> into <code>exclusives</code> list:</em></p>
+<pre><code class="language-bash">$ set_pool exclusives:add=DCzk4aCBCeHTDUZ3RnkiK8aqpYYZ9iC51W
+</code></pre>
+<p><em>Remove <code>D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv</code> from <code>exclusives</code> list:</em></p>
+<pre><code class="language-bash">$ set_pool exclusives:pop=D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv
 </code></pre></div>
             </div>
         </div>
