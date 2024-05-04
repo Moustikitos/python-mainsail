@@ -13,11 +13,12 @@ First read [installation script](https://bit.ly/3U6BI8v), then:
 ~$ bash <(wget -qO- https://bit.ly/3U6BI8v)
 ```
 
-Setup script creates 8 commands into `~/.bash_aliases` file:
+Setup script creates 9 commands into `~/.bash_aliases` file:
 
 - [x] `mnsl_install` install a specific version
 - [x] `mnsl_deploy` takes broadcast ip address and port to create
   services managed by `systemd`.
+- [x] `dump_prk` secures validator private key to sign transactions
 - [x] `add_pool` takes a validator public key to configure listening
   subscription on blockchain.
 - [x] `set_pool` modifies validator TBW pool service parameters.

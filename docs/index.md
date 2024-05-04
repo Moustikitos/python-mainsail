@@ -1,7 +1,7 @@
 # python-mainsail
 
 This package provides a simple implementation to interact with `Ark` blockchain
-API and managment tools for validators aiming to [run a pool](pool.md).
+API and managment tools for validators aiming to [run a pool](https://moustikitos.github.io/python-mainsail/pool).
 
 ```python
 >>> from mainsail.tx.v1 import Transfer

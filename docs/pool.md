@@ -14,11 +14,12 @@ First read [installation script](https://bit.ly/3U6BI8v), then:
 ~$ bash <(wget -qO- https://bit.ly/3U6BI8v)
 ```
 
-Setup script creates 8 commands into `~/.bash_aliases` file:
+Setup script creates 9 commands into `~/.bash_aliases` file:
 
 - [x] `mnsl_install` install a specific version
 - [x] `mnsl_deploy` takes broadcast ip address and port to create
   services managed by `systemd`.
+- [x] `dump_prk` secures validator private key to sign transactions
 - [x] `add_pool` takes a validator public key to configure listening
   subscription on blockchain.
 - [x] `set_pool` modifies validator TBW pool service parameters.
@@ -77,7 +78,7 @@ def add_pool(**kwargs) -> None
 ~$ add_pool puk=033f786d4875bcae61eb934e6af74090f254d7a0c955263d1ec9c504dbba5477ba
 ```
 
-```
+```raw
 INFO:mnsl_pool.biom:grabed options: {'puk': '033f786d4875bcae61eb934e6af74090f254d7a0c955263d1ec9c504dbba5477ba'}
 Type or paste your passphrase >
 enter pin code to secure secret (only figures)>
@@ -90,7 +91,7 @@ INFO:mnsl_pool.biom:delegate 033f786d4875bcae61eb934e6af74090f254d7a0c955263d1ec
 
 Check your pool using two endpoits:
 
-```bash
+```raw
 http://{ip}:{port}/{puk or username}
 http://{ip}:{port}/{puk or username}/forgery
 ```
@@ -120,13 +121,13 @@ def set_pool(**kwargs) -> requests.Response
 $ set_pool --share=0.7 --min-vote=10.0 --exclusives=D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv,DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU
 ```
 
-```
+```raw
 INFO:pool.biom:grabed options: {'share': 0.7, 'min_vote': 10.0, 'exclusives': 'D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv,DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU'}
 enter validator security pincode>
 {'status': 204, 'updated': {'exclusives': ['D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv', 'DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU'], 'min_vote': 10.0, 'share': 0.7}}
 ```
 
-available parameters:
+Available pool parameters:
 
 - [x] `share` - share rate in float number (0. <= share = 1.0).
 - [x] `min_vote` - minimum vote to be considered by the pool.
@@ -140,11 +141,46 @@ available parameters:
 - [x] `chunck_size` - maximum number of recipient for a multipayment.
 - [x] `wallet` - custom wallet to receive validator share.
 
-**`excludes` & `exclusives`**
+Available extra parameters:
 
-Those parameter accept a custom action to add or remove item from list.
+- [x] `url` - the url of node if domain name is set
+- [x] `ip` - the ip address of pool service
+- [x] `port` - the port used by pool service
+
+**Run a public pool**
+
+Voter selection can be donne using `min_vote` and `max_vote` options. A
+more convenient way is possible with `excludes` list, any address in this
+list wil be ignored by the TBW process.
+
+**Run a private pool**
+
+`min_vote` and `max_vote` parameters shouldn't be set but all the addresses
+granted by the private pool have to be mentioned in `exclusive` list.
+
+**`excludes` & `exclusives` lists**
+
+List parameters accept a custom action to add or remove item from list.
 
 ```bash
-(excludes|exclusives):[add|pop]=coma,separated,list,of,valid,addresses
+(excludes|exclusives)[:add|:pop]=coma,separated,list,of,valid,addresses
+```
+
+*Define a complete `exclusives` list:*
+
+```bash
+$ set_pool exclusives=D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv,DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU
+```
+
+*Add `DCzk4aCBCeHTDUZ3RnkiK8aqpYYZ9iC51W` into `exclusives` list:*
+
+```bash
+$ set_pool exclusives:add=DCzk4aCBCeHTDUZ3RnkiK8aqpYYZ9iC51W
+```
+
+*Remove `D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv` from `exclusives` list:*
+
+```bash
+$ set_pool exclusives:pop=D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv
 ```
 

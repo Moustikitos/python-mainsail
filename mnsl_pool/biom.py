@@ -274,7 +274,9 @@ WantedBy=multi-user.target
         os.system("sudo systemctl start mnsl-bg")
 
 
-def dump_prk(prk: identity.KeyRing = None) -> list:
+def dump_prk(
+    prk: Union[identity.KeyRing, List[int], str, int] = None
+) -> List[int]:
     # secure private key using a pincode
     if prk is None:
         prk = identity.KeyRing.create()
@@ -303,7 +305,7 @@ def add_pool(**kwargs) -> None:
 ba5477ba
     ```
 
-    ```
+    ```raw
     INFO:mnsl_pool.biom:grabed options: {'puk': '033f786d4875bcae61eb934e6af74\
 090f254d7a0c955263d1ec9c504dbba5477ba'}
     Type or paste your passphrase >
@@ -321,7 +323,7 @@ ba5477ba
 
     Check your pool using two endpoits:
 
-    ```bash
+    ```raw
     http://{ip}:{port}/{puk or username}
     http://{ip}:{port}/{puk or username}/forgery
     ```
@@ -420,7 +422,7 @@ def set_pool(**kwargs) -> requests.Response:
 mYhaRdXh7YPv,DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU
     ```
 
-    ```
+    ```raw
     INFO:pool.biom:grabed options: {'share': 0.7, 'min_vote': 10.0, 'exclusive\
 s': 'D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv,DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU'}
     enter validator security pincode>
@@ -428,7 +430,7 @@ s': 'D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv,DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU'}
 7YPv', 'DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU'], 'min_vote': 10.0, 'share': 0.7}}
     ```
 
-    Available parameters:
+    Available pool parameters:
 
     - [x] `share` - share rate in float number (0. <= share = 1.0).
     - [x] `min_vote` - minimum vote to be considered by the pool.
@@ -442,6 +444,12 @@ s': 'D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv,DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU'}
     - [x] `chunck_size` - maximum number of recipient for a multipayment.
     - [x] `wallet` - custom wallet to receive validator share.
 
+    Available extra parameters:
+
+    - [x] `url` - the url of node if domain name is set
+    - [x] `ip` - the ip address of pool service
+    - [x] `port` - the port used by pool service
+
     **Run a public pool**
 
     Voter selection can be donne using `min_vote` and `max_vote` options. A
@@ -450,34 +458,51 @@ s': 'D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv,DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU'}
 
     **Run a private pool**
 
-    `min_vote` and `max_vote` parameters shouldn't be set and all the address
-    granted to the private pool have to be mentioned in `exclusive` list.
+    `min_vote` and `max_vote` parameters shouldn't be set but all the addresses
+    granted by the private pool have to be mentioned in `exclusive` list.
 
     **`excludes` & `exclusives` lists**
+
+    List parameters accept a custom action to add or remove item from list.
 
     ```bash
     (excludes|exclusives)[:add|:pop]=coma,separated,list,of,valid,addresses
     ```
 
-    Those parameter accept a custom action to add or remove item from list.
+    *Define a complete `exclusives` list:*
 
-    - [x] define complete `exclusives` list : \
-`exclude=D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv,DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU`
-    - [x] add DCzk4aCBCeHTDUZ3RnkiK8aqpYYZ9iC51W into `exclusives` list: \
-`exclusives:add=DCzk4aCBCeHTDUZ3RnkiK8aqpYYZ9iC51W`
-    - [x] remove D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv from `exclusives` list: \
-`exclusives:pop=D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv`
+    ```bash
+    $ set_pool exclusives=D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv,DTGgFwrVGf5JpvkMS\
+p8QR5seEJ6tCAWFyU
+    ```
+
+    *Add `DCzk4aCBCeHTDUZ3RnkiK8aqpYYZ9iC51W` into `exclusives` list:*
+
+    ```bash
+    $ set_pool exclusives:add=DCzk4aCBCeHTDUZ3RnkiK8aqpYYZ9iC51W
+    ```
+
+    *Remove `D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv` from `exclusives` list:*
+
+    ```bash
+    $ set_pool exclusives:pop=D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv
+    ```
     """
     # `peer` is just to be used inside this function so we pop it from kwargs
-    # if # found there
+    # if found there
     peer = kwargs.pop("peer", {})
     # merge kwargs with command line
     options = _merge_options(**kwargs)
-    # because `ip` and `port` of remote pool can be set using command line args
-    # we pop them from here
+    # because `ip`, `port` or `url` of remote pool can be set using command
+    # line args we pop them from here
     if peer == {}:
-        peer["ip"] = options.pop("ip", "127.0.0.1")
-        peer["ports"] = {"requests": options.pop("port", 5000)}
+        if "url" in options:
+            peer["url"] = options.pop("url")
+            options.pop("ip", False)
+            options.pop("port", False)
+        else:
+            peer["ip"] = options.pop("ip", "127.0.0.1")
+            peer["ports"] = {"requests": options.pop("port", 5000)}
     # ask pincode if no one is given
     answer = options.pop("pincode", "")
     if "pincode" not in options:
