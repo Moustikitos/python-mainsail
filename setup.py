@@ -54,7 +54,8 @@ kw = {
     },
     "entry_points": {
         'console_scripts': [
-            'set_pool = mnsl_pool.biom:set_pool'
+            'set_pool = mnsl_pool.biom:set_pool',
+            'dump_prk = mnsl_pool.biom:dump_prk'
         ]
     },
     "zip-safe": True

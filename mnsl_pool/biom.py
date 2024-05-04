@@ -274,6 +274,20 @@ WantedBy=multi-user.target
         os.system("sudo systemctl start mnsl-bg")
 
 
+def dump_prk(prk: identity.KeyRing = None) -> list:
+    # secure private key using a pincode
+    if prk is None:
+        prk = identity.KeyRing.create()
+    answer = ""
+    while re.match(r"^[0-9]+$", answer) is None:
+        answer = getpass.getpass(
+            "enter pin code to secure secret (only figures)> "
+        )
+    pincode = [int(e) for e in answer]
+    prk.dump(pincode)
+    return pincode
+
+
 def add_pool(**kwargs) -> None:
     """
     **Initialize a pool**
@@ -314,7 +328,7 @@ ba5477ba
 
     Pool data are stored in `~/.mainsail` folder.
     """
-    options = _merge_options()
+    options = _merge_options(**kwargs)
     puk = options.get("puk", None)
     if puk is None:
         raise IdentityError("no pulic key provided")
@@ -322,15 +336,8 @@ ba5477ba
     prk = identity.KeyRing.create(kwargs.pop("prk", None))
     if prk.puk().encode() != puk:
         raise IdentityError(f"private key does not match public key {puk}")
-    # secure private key using a pincode
-    # it will give the possibility to mnsl-bg service to sign transactions
-    answer = ""
-    while re.match(r"^[0-9]+$", answer) is None:
-        answer = getpass.getpass(
-            "enter pin code to secure secret (only figures)> "
-        )
-    pincode = [int(e) for e in answer]
-    prk.dump(pincode)
+    # dump the private key so mnsl-bg service can sign transactions
+    pincode = dump_prk(prk)
     # reach a network
     while not hasattr(rest.config, "nethash"):
         try:
@@ -421,7 +428,7 @@ s': 'D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv,DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU'}
 7YPv', 'DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU'], 'min_vote': 10.0, 'share': 0.7}}
     ```
 
-    available parameters:
+    Available parameters:
 
     - [x] `share` - share rate in float number (0. <= share = 1.0).
     - [x] `min_vote` - minimum vote to be considered by the pool.
@@ -435,13 +442,31 @@ s': 'D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv,DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU'}
     - [x] `chunck_size` - maximum number of recipient for a multipayment.
     - [x] `wallet` - custom wallet to receive validator share.
 
-    **`excludes` & `exclusives`**
+    **Run a public pool**
+
+    Voter selection can be donne using `min_vote` and `max_vote` options. A
+    more convenient way is possible with `excludes` list, any address in this
+    list wil be ignored by the TBW process.
+
+    **Run a private pool**
+
+    `min_vote` and `max_vote` parameters shouldn't be set and all the address
+    granted to the private pool have to be mentioned in `exclusive` list.
+
+    **`excludes` & `exclusives` lists**
+
+    ```bash
+    (excludes|exclusives)[:add|:pop]=coma,separated,list,of,valid,addresses
+    ```
 
     Those parameter accept a custom action to add or remove item from list.
 
-    ```bash
-    (excludes|exclusives):[add|pop]=coma,separated,list,of,valid,addresses
-    ```
+    - [x] define complete `exclusives` list : \
+`exclude=D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv,DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU`
+    - [x] add DCzk4aCBCeHTDUZ3RnkiK8aqpYYZ9iC51W into `exclusives` list: \
+`exclusives:add=DCzk4aCBCeHTDUZ3RnkiK8aqpYYZ9iC51W`
+    - [x] remove D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv from `exclusives` list: \
+`exclusives:pop=D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv`
     """
     # `peer` is just to be used inside this function so we pop it from kwargs
     # if # found there
