@@ -2,6 +2,7 @@
 import os
 import math
 import time
+import random
 import logging
 import datetime
 
@@ -131,16 +132,16 @@ def update_forgery(block: dict) -> bool:
         for k in new_contributions:
             new_contributions[k] += xtoshis
         checksum -= n_voters * xtoshis
-        LOGGER.info(f"{n_voters * xtoshis} lost XTOSHI redistributed")
-    LOGGER.info(f"{checksum} lost XTOSHI remaining")
+        LOGGER.info(f"lost XTOSHI redistributed: {n_voters * xtoshis}")
+    LOGGER.info(f"lost XTOSHI remaining: {checksum}")
     forgery["contributions"] = new_contributions
     forgery["lost XTOSHI"] = checksum
     # update true block weight state
     dumpJson(block, os.path.join(DATA, publicKey, "last.block"))
     dumpJson(forgery, os.path.join(DATA, publicKey, "forgery.json"))
     LOGGER.info(
-        f"{shared_reward / XTOSHI} token distributed to {len(voters)} voters "
-        f"- {generator_reward / XTOSHI} token plus {fee / XTOSHI} fee added "
+        f"{shared_reward / XTOSHI} coin distributed to {len(voters)} voters "
+        f"- {generator_reward / XTOSHI} coin plus {fee / XTOSHI} fee added "
         f"to {info.get('wallet', identity.get_wallet(publicKey))} share"
     )
 
@@ -148,7 +149,7 @@ def update_forgery(block: dict) -> bool:
     for downvoter in list(set(contributions.keys()) - set(voters.keys())):
         LOGGER.info(
             f"{downvoter} downvoted {publicKey} : "
-            f"{contributions[downvoter] / XTOSHI:.8f} token leaved"
+            f"{contributions[downvoter] / XTOSHI:.8f} coin leaved"
         )
     for upvoters in list(set(voters.keys()) - set(contributions.keys())):
         LOGGER.info(
@@ -182,9 +183,14 @@ def freeze_forgery(puk: str, **options) -> None:
         [voter, 0 if voter in tbw["voter-shares"] else amount]
         for voter, amount in forgery.get("contributions", {}).items()
     )
+    # give lost xtoshi to a random voter
+    lost_xtoshi = forgery.pop("lost XTOSHI", 0)
+    if lost_xtoshi > 0:
+        address = random.choice(list(contributions.keys()))
+        contributions[address] += lost_xtoshi
+        LOGGER.info(f"lucky {address} got {lost_xtoshi} XTOSHI")
     forgery["contributions"] = contributions
-    forgery["undistributed"] = sum(contributions.values()) + \
-        forgery.pop("lost XTOSHI", 0)
+    forgery["undistributed"] = sum(contributions.values())
     LOGGER.info(
         f"forgery frozen @ {time.strftime('%Y%m%d-%H%M')} - "
         f"{forgery['undistributed']} XTOSHI undistributed"
