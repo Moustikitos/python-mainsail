@@ -211,7 +211,12 @@ def deploy(host: str = "127.0.0.1", port: int = 5000):
     ```
 
     If you plan to deploy pool server behind a proxy, it is possible to
-    customize `ip` and `port`:
+    using `host` and `port` parameters:
+
+    ```python
+    >>> from mnsl_pool import biom
+    >>> biom.deploy(host="127.0.0.1", port=7542)
+    ```
 
     ```bash
     ~$ mnsl_deploy host=127.0.0.1 port=7542 # use localhost address with port \
@@ -321,7 +326,7 @@ ba5477ba
 63d1ec9c504dbba5477ba set
     ```
 
-    Check your pool using two endpoits:
+    Check your pool using two endpoints:
 
     ```raw
     http://{ip}:{port}/{puk or username}
@@ -449,6 +454,9 @@ s': 'D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv,DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU'}
     - [x] `url` - the url of node if domain name is set
     - [x] `ip` - the ip address of pool service
     - [x] `port` - the port used by pool service
+
+    Those parameters are used to remotly configure pool options. Validator
+    private key have to be secrured on the remote system using `dump_prk`.
 
     **Run a public pool**
 

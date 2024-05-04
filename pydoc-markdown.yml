@@ -37,9 +37,9 @@ renderer:
     #   - mainsail.transaction.*
     #   - mainsail.tx.deserialize
     #   - mainsail.tx.v1.Transfer
-    - title: Webhook API
-      contents:
-      - mainsail.webhook.*
+    # - title: Webhook API
+    #   contents:
+    #   - mainsail.webhook.*
     - title: Pool
       contents:
       - mnsl_pool
