@@ -39,6 +39,9 @@ fi
 if [ "$(type -t set_pool)" != 'function' ]; then
     echo "function set_pool() { mnsl_venv && python -c \"from mnsl_pool import biom;print(biom.set_pool())\" \$@ ; deactivate ; }" >> ~/.bash_aliases
 fi
+if [ "$(type -t dump_prk)" != 'function' ]; then
+    echo "function dump_prk() { mnsl_venv && python -c \"from mnsl_pool import biom;biom.dump_prk()\" ; deactivate ; }" >> ~/.bash_aliases
+fi
 echo "done"
 
 echo
