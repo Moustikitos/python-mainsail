@@ -139,6 +139,7 @@ def _merge_options(**options):
 
 
 def get_nonces():
+    # computes two consecutive timed nonce
     base_time = math.ceil(time.time()/5) * 5
     datetimes = [
         datetime.datetime.fromtimestamp(base_time + n)
@@ -456,7 +457,9 @@ s': 'D5Ha4o3UTuTd59vjDw1F26mYhaRdXh7YPv,DTGgFwrVGf5JpvkMSp8QR5seEJ6tCAWFyU'}
     - [x] `port` - the port used by pool service
 
     Those parameters are used to remotly configure pool options. Validator
-    private key have to be secrured on the remote system using `dump_prk`.
+    private key have to be secrured on the remote system using `dump_prk`. If
+    no extra parameters are used, command will send request to
+    `localhost:5000`.
 
     **Run a public pool**
 
