@@ -164,6 +164,12 @@ def update_forgery(block: dict) -> bool:
 def freeze_forgery(puk: str, **options) -> None:
     min_share = options.get("min_share", 1.0) * XTOSHI
     forgery = loadJson(os.path.join(DATA, puk, "forgery.json"))
+    # give lost xtoshi to a random voter
+    lost_xtoshi = forgery.pop("lost XTOSHI", 0)
+    if lost_xtoshi > 0:
+        address = random.choice(list(forgery["contributions"].keys()))
+        forgery["contributions"][address] += lost_xtoshi
+        LOGGER.info(f"lucky {address} got {lost_xtoshi} XTOSHI")
     tbw = {
         "timestamp": f"{datetime.datetime.now()}",
         "validator-share": forgery.get("reward", 0) + forgery.get("fee", 0),
@@ -183,12 +189,6 @@ def freeze_forgery(puk: str, **options) -> None:
         [voter, 0 if voter in tbw["voter-shares"] else amount]
         for voter, amount in forgery.get("contributions", {}).items()
     )
-    # give lost xtoshi to a random voter
-    lost_xtoshi = forgery.pop("lost XTOSHI", 0)
-    if lost_xtoshi > 0:
-        address = random.choice(list(contributions.keys()))
-        contributions[address] += lost_xtoshi
-        LOGGER.info(f"lucky {address} got {lost_xtoshi} XTOSHI")
     forgery["contributions"] = contributions
     forgery["undistributed"] = sum(contributions.values())
     LOGGER.info(
