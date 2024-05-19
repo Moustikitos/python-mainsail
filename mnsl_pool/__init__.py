@@ -127,10 +127,12 @@ def pool_configure() -> flask.Response:
                     )
 
         if flask.request.method == "POST":
+            update = dict([k, v] for k, v in info.items() if k in data)
             LOGGER.debug(f"---- received> {data}")
-            LOGGER.info(f"updating {puk} info> {info}")
+            LOGGER.info(f"updating {puk} info> {update}")
             dumpJson(info, path, ensure_ascii=False)
-            return flask.jsonify({"status": 204, "updated": data})
+            os.makedirs(os.path.join(tbw.DATA, puk), exist_ok=True)
+            return flask.jsonify({"status": 204, "updated": update})
     else:
         return flask.jsonify({"status": 403})
 
@@ -145,7 +147,7 @@ def block_forged() -> flask.Response:
         LOGGER.info("webhook check> %s", check)
         if check is True and flask.request.data != b'':
             data = json.loads(flask.request.data)
-            block = data.get("data", {}).get("block", {}).get("data", {})
+            block = data.get("data", {})
             LOGGER.debug("block received> %s", block)
             JOB.put(block)
         else:
