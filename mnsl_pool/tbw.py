@@ -5,6 +5,7 @@ import time
 import random
 import logging
 import datetime
+import binascii
 
 from mainsail import rest, identity, loadJson, dumpJson, XTOSHI
 from mainsail.tx import Transfer, MultiPayment
@@ -14,7 +15,7 @@ logging.basicConfig()
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 DATA = os.path.join(os.getenv("HOME"), ".mainsail", ".pools")
-PEER = {"ip": "127.0.0.1", "ports": {"api-http": 4003}}
+PEER = rest.Peer("http://127.0.0.1:4003")  # {"ip": "127.0.0.1", "ports": {"api-http": 4003}}
 
 os.makedirs(DATA, exist_ok=True)
 
@@ -38,7 +39,7 @@ def update_forgery(block: dict) -> bool:
     min_vote = info.get("min_vote", 1) * XTOSHI
     max_vote = info.get("max_vote", int(1e6)) * XTOSHI
     share = info.get("share", 1.0)
-    peer = info.get("peer", PEER)
+    peer = info.get("api_peer", PEER)
 
     # 2. GET FEES AND REWARDS SINCE LAST FORGED BLOCK
     last_block = loadJson(os.path.join(DATA, publicKey, "last.block"))
@@ -253,3 +254,17 @@ def bake_registry(puk: str) -> None:
             else:
                 os.remove(os.path.join(DATA, puk, f"{name}.forgery"))
             LOGGER.info(f"{len(registry)} transactions baked")
+
+
+def broadcast_registry(puk: str) -> None:
+    for registry in [
+        reg for reg in os.listdir(os.path.join(DATA, puk))
+        if reg.endswith(".registry")
+    ]:
+        tx = loadJson(os.path.join(DATA, puk, registry))
+        LOGGER.info(rest.POST.api("transaction-pool", transactions=tx))
+        hash = identity.cSecp256k1.hash_sha256
+        dumpJson(
+            [hash(binascii.unhexlify(s)).decode("utf-8") for s in tx],
+            os.path.join(DATA, puk, f"{registry}.check")
+        )

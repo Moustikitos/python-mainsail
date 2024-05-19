@@ -3,10 +3,9 @@
 import os
 import time
 import queue
-import binascii
 import threading
 
-from mainsail import rest, identity
+from mainsail import rest
 from mnsl_pool import tbw, biom, loadJson, dumpJson, LOGGER
 
 TASK = queue.Queue()
@@ -43,7 +42,10 @@ def payroll():
                 if blocks > block_delay:
                     lock = biom.acquireLock()
                     try:
-                        tbw.freeze_forgery(puk, **info)
+                        if "puk" in info:
+                            tbw.freeze_forgery(**info)
+                        else:
+                            tbw.freeze_forgery(puk, **info)
                     except Exception:
                         LOGGER.exception("---- error occured>")
                     else:
@@ -51,22 +53,7 @@ def payroll():
                     finally:
                         biom.releaseLock(lock)
                     tbw.bake_registry(puk)
-                    for registry in [
-                        reg for reg in os.listdir(os.path.join(tbw.DATA, puk))
-                        if reg.endswith(".registry")
-                    ]:
-                        tx = loadJson(os.path.join(tbw.DATA, puk, registry))
-                        LOGGER.info(
-                            rest.POST.api("transaction-pool", transactions=tx)
-                        )
-                        hash = identity.cSecp256k1.hash_sha256
-                        dumpJson(
-                            [
-                                hash(binascii.unhexlify(s)).decode("utf-8")
-                                for s in tx
-                            ],
-                            os.path.join(tbw.DATA, puk, f"{registry}.check")
-                        )
+                    tbw.broadcast_registry(puk)
     LOGGER.info("payroll loop exited")
 
 
