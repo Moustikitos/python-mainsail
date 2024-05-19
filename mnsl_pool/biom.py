@@ -15,7 +15,7 @@ import requests
 from datetime import timezone
 from urllib import parse
 from mnsl_pool import tbw
-from mainsail import identity, rest, webhook, dumpJson, loadJson
+from mainsail import identity, rest, webhook
 from typing import Union, List
 
 # set basic logging
@@ -33,7 +33,10 @@ POOL_PARAMETERS = {
     "block_delay": int,
     "message": str,
     "chunck_size": int,
-    "wallet": str
+    "wallet": str,
+    "api_peer": dict,
+    "webhook": str,
+    "nethash": str
 }
 
 try:
@@ -95,6 +98,11 @@ def _merge_options(**options):
     # manage parameters
     params = {}
     for key, value in options.items():
+        if key == "api_peer":
+            if isinstance(value, str):
+                params[key] = rest.Peer(value)
+            elif isinstance(value, dict):
+                params[key] = value
         if key == "port":
             try:
                 params[key] = int(value)
@@ -191,11 +199,15 @@ def secured_request(
     prk: Union[identity.KeyRing, List[int], str, int] = None,
     headers: dict = {}, peer: dict = None
 ) -> requests.Response:
-    endpoint.headers = secure_headers(headers, prk)
     if data is None:
-        return endpoint(peer=peer)
+        return endpoint(
+            peer=peer, headers=secure_headers(headers or endpoint.headers, prk)
+        )
     else:
-        return endpoint(data=data, peer=peer)
+        return endpoint(
+            data=data, peer=peer,
+            headers=secure_headers(headers or endpoint.headers, prk)
+        )
 
 
 def deploy(host: str = "127.0.0.1", port: int = 5000):
@@ -226,7 +238,7 @@ def deploy(host: str = "127.0.0.1", port: int = 5000):
     """
     options = _merge_options()
     host = options.get("host", host)
-    port = options.get("port", host)
+    port = options.get("port", port)
 
     normpath = os.path.normpath
     executable = normpath(sys.executable)
@@ -347,18 +359,20 @@ ba5477ba
     # dump the private key so mnsl-bg service can sign transactions
     pincode = dump_prk(prk)
     # reach a network
+    api_peer = None
     while not hasattr(rest.config, "nethash"):
         try:
-            rest.use_network(
-                input("provide a network peer API [default=localhost:4003]> ")
-                or "http://127.0.0.1:4003"
-            )
+            api_peer = input(
+                "provide a network peer API [default=localhost:4003]> "
+            ) or "http://127.0.0.1:4003"
+            rest.use_network(api_peer)
         except KeyboardInterrupt:
             print("\n")
             break
         except Exception as error:
             LOGGER.info("%r", error)
             pass
+    options["api_peer"] = rest.Peer(api_peer)
     options["username"] = rest.GET.api.wallets(puk).get("username", None)
     # reach a valid subscription node
     webhook_peer = None
@@ -377,37 +391,40 @@ ba5477ba
             LOGGER.info("%r", error)
             webhook_peer = None
     # reach a valid target endpoint
-    target_endpoint = None
-    while target_endpoint is None:
-        target_endpoint = input(
+    target_peer = None
+    while target_peer is None:
+        target_peer = input(
             "provide your target server [default=localhost:5000]> "
         ) or "http://127.0.0.1:5000"
         try:
-            resp = requests.post(f"{target_endpoint}/block/forged", timeout=2)
+            resp = requests.post(f"{target_peer}/block/forged", timeout=2)
             if resp.status_code not in [200, 403]:
-                target_endpoint = None
+                target_peer = None
         except KeyboardInterrupt:
             print("\n")
             break
         except Exception as error:
             LOGGER.info("%r", error)
-            target_endpoint = None
+            target_peer = None
     # subscribe and save webhook id with other options
     ip, port = parse.urlparse(webhook_peer).netloc.split(":")
-    options = _merge_options(
-        **kwargs, prk=pincode, nethash=getattr(rest.config, "nethash"),
+    options.update(
+        prk=pincode, nethash=getattr(rest.config, "nethash"),
         webhook=webhook.subscribe(
             {"ip": ip, "ports": {"api-webhook": port}}, "block.forged",
-            target_endpoint, webhook.condition(
-                f"block.data.generatorPublicKey=={puk}"
+            f"{target_peer}/block/forged", webhook.condition(
+                f"generatorPublicKey=={puk}"
             )
         )
     )
-    # dump delegate options
-    path = os.path.join(tbw.DATA, f"{puk}.json")
-    dumpJson(dict(loadJson(path), **options), path, ensure_ascii=False)
-    os.makedirs(os.path.join(tbw.DATA, puk), exist_ok=True)
-    LOGGER.info(f"delegate {puk} set")
+    LOGGER.debug("data to be set as pool configuration> %s", options)
+    resp = rest.POST.pool.configure(
+        peer=rest.Peer(target_peer), **options,
+        headers=secure_headers(rest.POST.headers, pincode)
+    )
+    if resp.get("status", None) == 204:
+        LOGGER.info(f"{puk} pool added")
+    return resp
 
 
 def set_pool(**kwargs) -> requests.Response:
