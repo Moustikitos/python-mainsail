@@ -10,7 +10,8 @@ _track = []
 
 def _clear() -> None:
     for name in _track:
-        delattr(sys.modules[__name__], name)
+        if hasattr(sys.modules[__name__], name):
+            delattr(sys.modules[__name__], name)
     _track.clear()
 
 
