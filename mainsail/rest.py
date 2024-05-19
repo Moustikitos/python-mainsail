@@ -3,6 +3,7 @@
 Network endpoint managment module.
 """
 
+import re
 import requests
 
 from typing import Union
@@ -20,6 +21,28 @@ Urltuple = namedtuple(
 
 class ApiError(Exception):
     pass
+
+
+class Peer(dict):
+
+    ip_port = r'([0-9]+(?:\.[0-9]+){3})(:[0-9]+)?'
+
+    def __init__(
+        self, url: str = "http://127.0.0.1", port_name: str = "requests"
+    ) -> None:
+        self.base_url = urlparse(url)
+        test = re.match(Peer.ip_port, self.base_url.netloc)
+        if test is not None:
+            ip, port = test.groups()
+            self["ip"] = ip
+            if port is not None:
+                self["ports"] = {port_name: int(port.replace(":", ""))}
+        else:
+            self["url"] = urlunparse(
+                self.base_url._replace(
+                    path="", params="", query="", fragment=""
+                )
+            )
 
 
 class EndPoint(object):
@@ -69,16 +92,17 @@ class EndPoint(object):
         if "url" in peer:
             base_url = urlparse(peer["url"])
         else:
+            peer_ports = peer.get("ports", {})
             # if peer == {} return the a default base_url
             # default -> ["requests"]
             ports = list(
-                ports or set(self.ports) & set(peer.get("ports", {}).keys())
+                ports or set(self.ports) & set(peer_ports.keys())
             ) or ["requests"]
             # default -> http://127.0.0.1:5000
             base_url = Urltuple(
                 'http',
-                f"{peer.get('ip', '127.0.0.1')}:" +
-                f"{peer.get('ports', {}).get(ports[0], 5000)}",
+                f"{peer.get('ip', '127.0.0.1')}:" + 
+                f"{peer_ports.get(ports[0], 5000)}",
                 None, None, None, None
             )
         base_url = base_url._replace(path='/'.join((self.path,) + path))
