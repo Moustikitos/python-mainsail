@@ -101,7 +101,7 @@ class EndPoint(object):
             # default -> http://127.0.0.1:5000
             base_url = Urltuple(
                 'http',
-                f"{peer.get('ip', '127.0.0.1')}:" + 
+                f"{peer.get('ip', '127.0.0.1')}:" +
                 f"{peer_ports.get(ports[0], 5000)}",
                 None, None, None, None
             )
