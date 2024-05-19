@@ -13,7 +13,9 @@ API and managment tools for validators aiming to [run a pool](https://moustikito
 >>> rest.GET.api.wallets()["meta"]["totalCount"]
 89
 >>> # use a custop peer
->>> custom_peer = {"ip": "49.13.30.19", "ports": {"api-development": 4003}}
+>>> custom_peer = rest.Peer("http://49.13.30.19:4006", port_name="api-development")
+>>> custom_peer
+{'ip': '49.13.30.19', 'ports': {'api-development': 4006}}
 >>> # http://49.13.30.19:4003/api/transactions?type=4
 >>> [t["blockId"] for t in rest.GET.api.transactions(type=4, peer=custom_peer)["data"]]
 ['41afebd995473aab76e8dd7415ab742a6882a08f4c0e0a7305d1a48c551c955c', 'aff37ad0288fadc9d5fdec584d1affab2df0021e86cde3ecb2ba263d6deba3cc']
@@ -70,7 +72,7 @@ activate = 1
 - [x] secured webhook subscriptions storage
 - [x] offline network configuration available
 - [x] pool server with remote managment tool
-- [x] `cmd` command line `set_pool` for windows platform
+- [x] `cmd` command line `set_pool` and `dump_prk` for windows platform
 - [x] pool installation and update using pip
 
 ## Support this project
