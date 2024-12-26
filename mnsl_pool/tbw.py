@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import os
 import math
 import time
@@ -15,7 +16,7 @@ logging.basicConfig()
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 DATA = os.path.join(os.getenv("HOME"), ".mainsail", ".pools")
-PEER = rest.Peer("http://127.0.0.1:4003")  # {"ip": "127.0.0.1", "ports": {"api-http": 4003}}
+PEER = rest.Peer("http://127.0.0.1:4003")
 
 os.makedirs(DATA, exist_ok=True)
 
@@ -215,10 +216,11 @@ def bake_registry(puk: str) -> None:
             registry = []
             tbw = loadJson(os.path.join(DATA, puk, f"{name}.forgery"))
             share = Transfer(
-                tbw["validator-share"] / XTOSHI,
+                0,  # set 0 to ammount to use tbw["validator-share"] directly
                 info.get("wallet", wallet["address"]),
                 f"\U0001f4b3 {wallet.get('username', puk)} reward"
             )
+            share.amount = tbw["validator-share"]
             share.sign(prk, nonce=nonce)
             registry.append(share.serialize())
 
@@ -229,7 +231,8 @@ def bake_registry(puk: str) -> None:
             if len(voter_shares) <= 2:
                 for address, amount in voter_shares.items():
                     nonce += 1
-                    transfer = Transfer(amount / XTOSHI, address, message)
+                    transfer = Transfer(0, address, message)  # 0 to use amount
+                    transfer.amount = amount
                     transfer.sign(prk, nonce=nonce)
                     registry.append(transfer.serialize())
             else:
@@ -262,7 +265,12 @@ def broadcast_registry(puk: str) -> None:
         if reg.endswith(".registry")
     ]:
         tx = loadJson(os.path.join(DATA, puk, registry))
-        LOGGER.info(rest.POST.api("transaction-pool", transactions=tx))
+        LOGGER.info(
+            rest.POST.api.transactions(
+                transactions=tx,
+                peer=rest.Peer("http://127.0.0.1:4007")
+            )
+        )
         hash = identity.cSecp256k1.hash_sha256
         dumpJson(
             [hash(binascii.unhexlify(s)).decode("utf-8") for s in tx],
