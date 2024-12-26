@@ -83,11 +83,14 @@ def accountant():
                 ]:
                     ids = loadJson(os.path.join(tbw.DATA, puk, check))
                     for tx_id in ids[::]:
-                        LOGGER.info(f"transaction {tx_id} applied")
-                        if rest.GET.api.transactions(
+                        tx = rest.GET.api.transactions(
                             tx_id, peer=tbw.PEER
-                        ).get("data", {}).get("confirmations") > 10:
+                        ).get("data", {})
+                        if tx.get("confirmations", 0) > 10:
+                            LOGGER.info(f"transaction {tx_id} applied")
                             ids.pop(ids.index(tx_id))
+                        else:
+                            LOGGER.info(f"transaction {tx_id} not applied")
                     if len(ids) > 0:
                         dumpJson(ids, os.path.join(tbw.DATA, puk, check))
                     else:

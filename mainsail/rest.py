@@ -157,6 +157,13 @@ def get_peers(peer: str, latency: int = 500) -> None:
         key=lambda p: p["latency"]
     )
     setattr(config, "peers", [
+        # {
+        #     "ip": peer["ip"],
+        #     "ports": dict(
+        #         [k.split("/")[-1], v["port"]] for k, v in peer["plugins"].items()
+        #         if v["enabled"]
+        #     )
+        # }
         {
             "ip": peer["ip"],
             "ports": dict(

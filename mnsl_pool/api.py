@@ -1,10 +1,16 @@
 # -*- coding: utf-8 -*-
 
 import os
+import logging
 import threading
-from mainsail import rest
 
+from mainsail import rest
 from mnsl_pool import tbw, flask, loadJson, main, app, JOB
+
+# set basic logging
+logging.basicConfig()
+LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.DEBUG)
 
 
 def _find(puk_or_username):
@@ -20,12 +26,12 @@ def _find(puk_or_username):
         else:
             puk = name.split(".")[0]
             attributes = rest.GET.api.wallets(puk).get("attributes", {})
-            tbw.LOGGER.info(f"{name} : {attributes}")
+            tbw.LOGGER.debug(f"{name} : {attributes}")
             if puk_or_username == attributes.get("username", ""):
                 return puk
 
 
-@app.route("/<string:puk>", methods=["GET"])
+@app.route("/api/<string:puk>", methods=["GET"])
 def validator(puk: str) -> flask.Response:
     if puk.endswith(".ico"):
         return "", 404
@@ -37,19 +43,40 @@ def validator(puk: str) -> flask.Response:
     return flask.jsonify({"status": 404})
 
 
-@app.route("/<string:puk>/forgery", methods=["GET"])
+@app.route("/api/<string:puk>/forgery", methods=["GET"])
 def forgery(puk: str) -> flask.Response:
     puk = _find(puk)
     path = os.path.join(tbw.DATA, puk, "forgery.json")
     if os.path.exists(path):
-        forgery = loadJson(path)
-        forgery.pop("reward", False)
-        for k in forgery:
-            if k not in ["blocks", "contributions", "lost XTOSHI"]:
-                forgery[k] /= tbw.XTOSHI
-        for k in forgery.get("contributions", {}):
-            forgery["contributions"][k] /= tbw.XTOSHI
-        return flask.jsonify(forgery)
+        if len(flask.request.args):
+            try:
+                page = max(1, int(flask.request.args.get("page", 1))) - 1
+                limit = max(5, int(flask.request.args.get("limit", 20)))
+                order = flask.request.args.get("order", "desc")
+                all = sorted(
+                    os.listdir(os.path.join(tbw.DATA, puk, "forgery")),
+                    reverse=order in ["desc", ">"]
+                )
+            except (FileNotFoundError, ValueError):
+                all = []
+            else:
+                result = []
+                for name in all[page * limit:page * limit + limit]:
+                    result.append(
+                        loadJson(
+                            os.path.join(tbw.DATA, puk, "forgery", name)
+                        )
+                    )
+                return flask.jsonify(result)
+        else:
+            forgery = loadJson(path)
+            forgery.pop("reward", False)
+            for k in forgery:
+                if k not in ["blocks", "contributions", "lost XTOSHI"]:
+                    forgery[k] /= tbw.XTOSHI
+            for k in forgery.get("contributions", {}):
+                forgery["contributions"][k] /= tbw.XTOSHI
+            return flask.jsonify(forgery)
     return flask.jsonify({"status": 404})
 
 
