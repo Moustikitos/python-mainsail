@@ -260,6 +260,4 @@ class Transaction:
         return check
 
     def send(self) -> dict:
-        return rest.POST.api(
-            "transaction-pool", transactions=[self.serialize()]
-        )
+        return rest.POST.api.transactions(transactions=[self.serialize()])
